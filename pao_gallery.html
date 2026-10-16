@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAO Image Gallery</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  .card-img { aspect-ratio: 1 / 1; object-fit: cover; width: 100%; display: block; }
+  .ph { aspect-ratio: 1 / 1; }
+  .chev { transition: transform .2s ease; }
+  .body-hidden { display: none; }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+<header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+    <h1 class="text-lg font-extrabold tracking-tight">PAO Image Gallery</h1>
+    <span id="imgStatus" class="text-xs text-slate-400"></span>
+    <div class="ml-auto flex items-center gap-2">
+      <a href="pao_memory_system_helper.html" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition">Open helper</a>
+      <button id="expandAll" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition">Expand all</button>
+      <button id="collapseAll" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition">Collapse all</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 py-6">
+  <p class="text-sm text-slate-500 mb-6">
+    Drop generated images into an <code class="bg-slate-200 px-1.5 py-0.5 rounded text-xs">images/</code> folder
+    named <code class="bg-slate-200 px-1.5 py-0.5 rounded text-xs">00.png</code> &hellip; <code class="bg-slate-200 px-1.5 py-0.5 rounded text-xs">99.png</code>
+    (<code class="text-xs">.jpg</code>/<code class="text-xs">.webp</code> also work) next to this file. Missing images show a placeholder.
+  </p>
+  <div id="sections" class="space-y-8"></div>
+</main>
+
+<script>
+const SECTIONS = [{"id": "cat-family", "emoji": "🏠🧹", "title": "Set 1: Family Members (00-09)", "subtitle": "Cleaning Tasks with Household Items • Closest Relational Proximity", "items": [{"num": "00", "person": "Meli", "action": "Vacuuming", "object": "Vacuum Cleaner"}, {"num": "01", "person": "Mom", "action": "Washing", "object": "Dish Sponge"}, {"num": "02", "person": "Dad", "action": "Sweeping", "object": "Broom"}, {"num": "03", "person": "James", "action": "Dusting", "object": "Feather Duster"}, {"num": "04", "person": "Sarah", "action": "Mopping", "object": "Mop Bucket"}, {"num": "05", "person": "Micah", "action": "Scrubbing", "object": "Toothbrush"}, {"num": "06", "person": "Mickey", "action": "Wiping", "object": "Paper Towel"}, {"num": "07", "person": "Steph", "action": "Polishing", "object": "Windex Spray"}, {"num": "08", "person": "Milica", "action": "Organizing", "object": "Storage Bin"}, {"num": "09", "person": "Manfred", "action": "Shoveling", "object": "Dustpan"}]}, {"id": "cat-friends", "emoji": "👥🎨", "title": "Set 2: Friends or Colleagues (10-19)", "subtitle": "Creative Arts with Stationery", "items": [{"num": "10", "person": "Matt Kindem", "action": "Sketching", "object": "Sketchpad"}, {"num": "11", "person": "Mark Switajski", "action": "Painting", "object": "Paintbrush"}, {"num": "12", "person": "Ben Bowman", "action": "Writing", "object": "Ballpoint Pen"}, {"num": "13", "person": "Kevin Sorensen", "action": "Drawing", "object": "Marker"}, {"num": "14", "person": "Kayla Hewitt", "action": "Stapling", "object": "Stapler"}, {"num": "15", "person": "Geoff Sutcliffe", "action": "Cutting", "object": "Scissors"}, {"num": "16", "person": "Laura Kovacs", "action": "Gluing", "object": "Glue Stick"}, {"num": "17", "person": "Matthias", "action": "Highlighting", "object": "Highlighter"}, {"num": "18", "person": "Sophie", "action": "Measuring", "object": "Ruler"}, {"num": "19", "person": "Sonja", "action": "Erasing", "object": "Eraser"}]}, {"id": "cat-athletes", "emoji": "🏆⚽", "title": "Set 3: Professional Athletes (20-29)", "subtitle": "Sports Movements with Sporting Equipment", "items": [{"num": "20", "person": "LeBron James", "action": "Slam Dunking", "object": "Basketball"}, {"num": "21", "person": "Mew2King", "action": "Wavedashing", "object": "GameCube Controller"}, {"num": "22", "person": "Cristiano Ronaldo", "action": "Kicking", "object": "Soccer Ball"}, {"num": "23", "person": "Lionel Messi", "action": "Dribbling", "object": "Soccer Cleat"}, {"num": "24", "person": "Tom Brady", "action": "Throwing", "object": "Football"}, {"num": "25", "person": "Mang0", "action": "Dash Dancing", "object": "CRT Monitor"}, {"num": "26", "person": "Michael Jordan", "action": "Rim Hanging", "object": "Basketball Hoop"}, {"num": "27", "person": "Usain Bolt", "action": "Sprinting", "object": "Running Spikes"}, {"num": "28", "person": "Tiger Woods", "action": "Putting", "object": "Golf Club"}, {"num": "29", "person": "Magnus Carlsen", "action": "Blitzing", "object": "Chess Clock"}]}, {"id": "cat-moviestars", "emoji": "🎬🍳", "title": "Set 4: Iconic Movie Stars (30-39)", "subtitle": "Cooking and Eating with Food", "items": [{"num": "30", "person": "Tom Hanks", "action": "Grilling", "object": "Steak"}, {"num": "31", "person": "Marilyn Monroe", "action": "Baking", "object": "Chocolate Cake"}, {"num": "32", "person": "Brad Pitt", "action": "Chopping", "object": "Carrot"}, {"num": "33", "person": "Angelina Jolie", "action": "Blending", "object": "Smoothie"}, {"num": "34", "person": "Leonardo DiCaprio", "action": "Frying", "object": "Pancake"}, {"num": "35", "person": "Scarlett Johansson", "action": "Boiling", "object": "Spaghetti"}, {"num": "36", "person": "Will Smith", "action": "Roasting", "object": "Chicken"}, {"num": "37", "person": "Jennifer Lawrence", "action": "Eating", "object": "Banana"}, {"num": "38", "person": "Keanu Reeves", "action": "Slicing", "object": "Watermelon"}, {"num": "39", "person": "Anne Hathaway", "action": "Toasting", "object": "Bread"}]}, {"id": "cat-musicians", "emoji": "🎤🎸", "title": "Set 5: Famous Musicians (40-49)", "subtitle": "Playing Instruments with Musical Instruments", "items": [{"num": "40", "person": "Elvis Presley", "action": "Strumming", "object": "Acoustic Guitar"}, {"num": "41", "person": "Michael Jackson", "action": "Pounding", "object": "Grand Piano"}, {"num": "42", "person": "Beyoncé", "action": "Beating", "object": "Drum Kit"}, {"num": "43", "person": "Freddie Mercury", "action": "Plucking", "object": "Electric Bass"}, {"num": "44", "person": "Taylor Swift", "action": "Bowing", "object": "Violin"}, {"num": "45", "person": "Prince", "action": "Blowing", "object": "Saxophone"}, {"num": "46", "person": "David Bowie", "action": "Squeezing", "object": "Accordion"}, {"num": "47", "person": "Madonna", "action": "Tooting", "object": "Trumpet"}, {"num": "48", "person": "Bob Marley", "action": "Rattling", "object": "Bongo Drums"}, {"num": "49", "person": "Eminem", "action": "Scratching", "object": "DJ Turntable"}]}, {"id": "cat-superheroes", "emoji": "🦸👕", "title": "Set 6: Superheroes (50-59)", "subtitle": "Putting On Costumes and Accessories", "items": [{"num": "50", "person": "Batman", "action": "Swirling", "object": "Black Cape"}, {"num": "51", "person": "Superman", "action": "Tugging On", "object": "Red Boots"}, {"num": "52", "person": "Spider-Man", "action": "Yanking Over", "object": "Mask"}, {"num": "53", "person": "Wonder Woman", "action": "Clasping", "object": "Tiara"}, {"num": "54", "person": "Iron Man", "action": "Sealing", "object": "Helmet"}, {"num": "55", "person": "Thor", "action": "Draping", "object": "Red Cloak"}, {"num": "56", "person": "Captain America", "action": "Buckling", "object": "Shield Emblem"}, {"num": "57", "person": "Hulk", "action": "Shredding", "object": "Purple Shorts"}, {"num": "58", "person": "Black Panther", "action": "Hooking", "object": "Necklace"}, {"num": "59", "person": "Flash", "action": "Snapping", "object": "Running Gloves"}]}, {"id": "cat-cartoons", "emoji": "🐰🚗", "title": "Set 7: Cartoon Characters (60-69)", "subtitle": "Operating Vehicles with Cartoon Vehicles", "items": [{"num": "60", "person": "Mickey Mouse", "action": "Driving", "object": "Toontown Roadster"}, {"num": "61", "person": "Bugs Bunny", "action": "Steering", "object": "Carrot Mobile"}, {"num": "62", "person": "Homer Simpson", "action": "Piloting", "object": "Duff Beer Blimp"}, {"num": "63", "person": "SpongeBob SquarePants", "action": "Riding", "object": "Patty Wagon"}, {"num": "64", "person": "Scooby-Doo", "action": "Cruising", "object": "Mystery Machine"}, {"num": "65", "person": "Fred Flintstone", "action": "Pedaling", "object": "Foot-Powered Car"}, {"num": "66", "person": "Pikachu", "action": "Zooming", "object": "Lightning McQueen Car"}, {"num": "67", "person": "Mario", "action": "Racing", "object": "Go-Kart"}, {"num": "68", "person": "Luigi", "action": "Flying", "object": "TIE Fighter"}, {"num": "69", "person": "Bender", "action": "Hovering", "object": "Hovercar"}]}, {"id": "cat-politicians", "emoji": "🏛️🔬", "title": "Set 8: Politicians (70-79)", "subtitle": "Scientific Experiments with Living Things", "items": [{"num": "70", "person": "Abraham Lincoln", "action": "Cloning", "object": "Lab Mouse"}, {"num": "71", "person": "George Washington", "action": "Microscoping", "object": "Fruit Fly"}, {"num": "72", "person": "Barack Obama", "action": "Analyzing", "object": "Zebrafish"}, {"num": "73", "person": "Winston Churchill", "action": "Injecting", "object": "Guinea Pig"}, {"num": "74", "person": "Nelson Mandela", "action": "Cultivating", "object": "E. Coli Bacteria"}, {"num": "75", "person": "Franklin D. Roosevelt", "action": "Breeding", "object": "Laboratory Rat"}, {"num": "76", "person": "John F. Kennedy", "action": "Sequencing", "object": "Plant Shoot"}, {"num": "77", "person": "Theodore Roosevelt", "action": "Examining", "object": "Frog Specimen"}, {"num": "78", "person": "Angela Merkel", "action": "Centrifuging", "object": "Yeast Culture"}, {"num": "79", "person": "Mahatma Gandhi", "action": "Observing", "object": "Ant Colony"}]}, {"id": "cat-historical", "emoji": "🗿🪑", "title": "Set 9: Historical Figures (80-89)", "subtitle": "Building and Fixing with Furniture", "items": [{"num": "80", "person": "Albert Einstein", "action": "Sanding", "object": "Wooden Desk"}, {"num": "81", "person": "Cleopatra", "action": "Upholstering", "object": "Velvet Sofa"}, {"num": "82", "person": "Leonardo da Vinci", "action": "Carving", "object": "Dining Chair"}, {"num": "83", "person": "Julius Caesar", "action": "Hammering", "object": "Bookshelf"}, {"num": "84", "person": "Joan of Arc", "action": "Refinishing", "object": "Coffee Table"}, {"num": "85", "person": "Adolf Hitler", "action": "Nailing", "object": "Nightstand"}, {"num": "86", "person": "Galileo Galilei", "action": "Varnishing", "object": "Rocking Chair"}, {"num": "87", "person": "Isaac Newton", "action": "Assembling", "object": "Wardrobe"}, {"num": "88", "person": "Benjamin Franklin", "action": "Repairing", "object": "Grandfather Clock"}, {"num": "89", "person": "Napoléon Bonaparte", "action": "Staining", "object": "Stool"}]}, {"id": "cat-fictional", "emoji": "🧙💻", "title": "Set 10: Fictional Characters (90-99)", "subtitle": "Using Technology with Tech Gadgets • Furthest Relational Proximity", "items": [{"num": "90", "person": "Sherlock Holmes", "action": "Tapping", "object": "Smartphone"}, {"num": "91", "person": "Harry Potter", "action": "Swiping", "object": "Tablet"}, {"num": "92", "person": "Darth Vader", "action": "Typing", "object": "Mechanical Keyboard"}, {"num": "93", "person": "Gandalf", "action": "Streaming", "object": "Smart TV"}, {"num": "94", "person": "Katniss Everdeen", "action": "Coding", "object": "Laptop"}, {"num": "95", "person": "Luke Skywalker", "action": "Scanning", "object": "Barcode Reader"}, {"num": "96", "person": "Frodo Baggins", "action": "Printing", "object": "Wireless Printer"}, {"num": "97", "person": "James Bond", "action": "Hacking", "object": "Smartwatch"}, {"num": "98", "person": "Dracula", "action": "Charging", "object": "Power Bank"}, {"num": "99", "person": "Alice in Wonderland", "action": "Rendering", "object": "VR Headset"}]}];
+
+const EXT = ['png','jpg','jpeg','webp'];
+
+function el(tag, cls, html) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html !== undefined) e.innerHTML = html;
+  return e;
+}
+function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+
+let loadedCount = 0, totalCount = 0;
+
+function makeCard(item) {
+  const wrap = el('div', 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col');
+  const numBadge = el('div', 'absolute top-2 left-2 z-10 font-mono text-sm font-bold text-white bg-slate-900/70 rounded-lg px-2 py-0.5', item.num);
+  const imgWrap = el('div', 'relative bg-slate-200');
+  imgWrap.appendChild(numBadge);
+
+  const img = el('img', 'card-img');
+  img.alt = item.person + ' ' + item.action + ' ' + item.object;
+  img.loading = 'lazy';
+  let extIdx = 0;
+  img.onload = () => { loadedCount++; updateStatus(); };
+  img.onerror = () => {
+    extIdx++;
+    if (extIdx < EXT.length) { trySrc(extIdx); }
+    else { showPlaceholder(); }
+  };
+  function trySrc(i){ img.src = 'images/' + item.num + '.' + EXT[i]; }
+  function showPlaceholder(){
+    img.remove();
+    const ph = el('div', 'ph flex flex-col items-center justify-center gap-2 text-center p-3 bg-gradient-to-br from-slate-100 to-slate-200');
+    ph.innerHTML = '<div class="text-4xl">🖼️</div>'
+      + '<div class="text-[11px] text-slate-400 leading-tight">images/' + item.num + '.png</div>';
+    imgWrap.appendChild(ph);
+  }
+  trySrc(0);
+  imgWrap.appendChild(img);
+  totalCount++;
+
+  const text = el('div', 'p-3 leading-snug');
+  text.innerHTML = '<div class="text-sm font-semibold text-indigo-600">' + esc(item.person) + '</div>'
+    + '<div class="text-sm font-semibold text-rose-500">' + esc(item.action) + '</div>'
+    + '<div class="text-sm font-semibold text-emerald-600">' + esc(item.object) + '</div>';
+
+  wrap.appendChild(imgWrap);
+  wrap.appendChild(text);
+  return wrap;
+}
+
+function updateStatus(){
+  document.getElementById('imgStatus').textContent = loadedCount + ' / ' + totalCount + ' images found';
+}
+
+function makeSection(sec, index) {
+  const section = el('section', 'bg-white/60 rounded-3xl border border-slate-200 shadow-sm');
+  const header = el('button', 'w-full flex items-center gap-3 px-5 py-4 text-left');
+  header.type = 'button';
+  header.innerHTML =
+    '<span class="text-2xl">' + sec.emoji + '</span>' +
+    '<span class="flex-1 min-w-0">' +
+      '<span class="block text-base font-bold text-slate-800">' + esc(sec.title) + '</span>' +
+      '<span class="block text-xs text-slate-400">' + esc(sec.subtitle) + '</span>' +
+    '</span>' +
+    '<span class="text-xs font-medium text-slate-400 mr-2">' + sec.items.length + ' items</span>' +
+    '<svg class="chev w-5 h-5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>';
+
+  const body = el('div', 'px-5 pb-6');
+  const grid = el('div', 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4');
+  sec.items.forEach(it => grid.appendChild(makeCard(it)));
+  body.appendChild(grid);
+
+  header.addEventListener('click', () => {
+    const hidden = body.classList.toggle('body-hidden');
+    header.querySelector('.chev').style.transform = hidden ? 'rotate(-90deg)' : 'rotate(0deg)';
+  });
+
+  section.appendChild(header);
+  section.appendChild(body);
+  return section;
+}
+
+const container = document.getElementById('sections');
+
+// Prefer the live data saved by the helper (same file:// origin), falling back to the embedded snapshot.
+let SECTIONS_LIVE = SECTIONS;
+try {
+  const saved = JSON.parse(localStorage.getItem('pao_memory_data'));
+  if (Array.isArray(saved) && saved.length) {
+    const byId = {};
+    saved.forEach(c => { if (c && c.id) byId[c.id] = c; });
+    SECTIONS_LIVE = SECTIONS.map(sec => {
+      const s = byId[sec.id];
+      if (!s || !Array.isArray(s.items)) return sec;
+      return {
+        id: sec.id,
+        emoji: s.emoji || sec.emoji,
+        title: s.title || sec.title,
+        subtitle: s.subtitle || sec.subtitle,
+        items: s.items
+      };
+    });
+  }
+} catch (e) { /* keep embedded snapshot */ }
+
+SECTIONS_LIVE.forEach((sec, i) => container.appendChild(makeSection(sec, i)));
+updateStatus();
+
+document.getElementById('expandAll').addEventListener('click', () => {
+  document.querySelectorAll('#sections .body-hidden').forEach(b => b.classList.remove('body-hidden'));
+  document.querySelectorAll('#sections .chev').forEach(c => c.style.transform = 'rotate(0deg)');
+});
+document.getElementById('collapseAll').addEventListener('click', () => {
+  document.querySelectorAll('#sections > section > div').forEach(b => b.classList.add('body-hidden'));
+  document.querySelectorAll('#sections .chev').forEach(c => c.style.transform = 'rotate(-90deg)');
+});
+</script>
+</body>
+</html>

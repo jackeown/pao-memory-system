@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAO Memory System Helper</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom scrollbar for better look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Duplicate detection */
+        .dup-banner { display: flex; }
+        .dup-banner.hidden { display: none; }
+        .pao-input.pao-dup {
+            border-color: #f87171 !important;
+            background-color: #fef2f2 !important;
+        }
+        .pao-input.pao-dup:focus {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 1px #ef4444;
+        }
+
+        /* Drift modal + row flash */
+        .pao-modal { display: flex; }
+        .pao-modal.hidden { display: none; }
+        .pao-flash { animation: paoFlash 1.8s ease-out; }
+        @keyframes paoFlash {
+            0%, 100% { background-color: transparent; }
+            15% { background-color: #fef9c3; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header Section -->
+    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight">PAO Memory System Studio</h1>
+                <p class="text-indigo-200 text-sm">Organize & memorize numbers 00–99 using Person-Action-Object categories</p>
+            </div>
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <input type="text" id="globalSearch" placeholder="Search number, person, action, object..." 
+                    class="px-4 py-2 rounded-lg text-slate-800 bg-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 w-full sm:w-72 shadow-inner">
+                <button id="practiceBtn" class="bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-semibold px-4 py-2 rounded-lg transition whitespace-nowrap shadow-sm">
+                    Practice
+                </button>
+                <button id="resetDataBtn" class="bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-medium px-3 py-2 rounded-lg transition border border-indigo-500 whitespace-nowrap">
+                    Reset Defaults
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex-grow w-full">
+
+        <!-- Practice (spaced repetition) View -->
+        <section id="practiceView" class="hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5 mb-6">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                            Practice Mode
+                            <span class="text-xs font-normal text-slate-400">spaced repetition</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Weak items come back as multiple choice; strong items become case-insensitive typed recall.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <label class="text-xs text-slate-500 font-medium">Question
+                            <select id="quizStyle" class="ml-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                                <option value="parts" selected>Parts</option>
+                                <option value="image">Whole image</option>
+                            </select>
+                        </label>
+                        <label id="quizAnswerModeWrap" class="text-xs text-slate-500 font-medium">Answer mode
+                            <select id="quizAnswerMode" class="ml-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                                <option value="auto" selected>Auto (adaptive)</option>
+                                <option value="mc">Multiple choice</option>
+                                <option value="typed">Typed</option>
+                            </select>
+                        </label>
+                        <label class="text-xs text-slate-500 font-medium">Numbers
+                            <select id="quizScope" class="ml-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                                <option value="all" selected>All numbers</option>
+                                <option value="selected">Selected few</option>
+                            </select>
+                        </label>
+                        <label id="quizPoolWrap" class="hidden text-xs text-slate-500 font-medium">Which
+                            <input id="quizPoolInput" type="text" autocomplete="off" placeholder="e.g. 5, 27, 84 (blank = all)"
+                                class="ml-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs w-44 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                        </label>
+                        <label class="text-xs text-slate-500 font-medium">Cards
+                            <select id="quizSessionSize" class="ml-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                                <option value="10">10</option>
+                                <option value="20" selected>20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </label>
+                        <button id="quizRestartBtn" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">Restart</button>
+                        <button id="quizResetProgressBtn" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">Reset progress</button>
+                        <button id="quizExitBtn" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition">Exit</button>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-x-5 gap-y-1 mt-4 text-xs font-medium">
+                    <span class="text-slate-500">Due: <b id="quizStatDue" class="text-amber-600">–</b></span>
+                    <span class="text-slate-500">New: <b id="quizStatNew" class="text-slate-700">–</b></span>
+                    <span class="text-slate-500">Learning: <b id="quizStatLearning" class="text-rose-600">–</b></span>
+                    <span class="text-slate-500">Mature: <b id="quizStatMature" class="text-emerald-600">–</b></span>
+                    <span class="text-slate-500">Accuracy: <b id="quizStatAccuracy" class="text-slate-700">–</b></span>
+                    <span class="text-slate-500">This session: <b id="quizStatProgress" class="text-slate-700">–</b></span>
+                </div>
+            </div>
+
+            <div id="quizCard" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-10"></div>
+        </section>
+        
+        <!-- Digit → Picture Converter -->
+        <div id="converterCard" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
+            <div class="flex flex-wrap items-center gap-3">
+                <label for="digitInput" class="text-sm font-semibold text-slate-700 whitespace-nowrap">Digits → Pictures</label>
+                <input type="text" id="digitInput" inputmode="numeric" autocomplete="off"
+                    placeholder="Type digits — every 6 becomes one picture (e.g. 274803)"
+                    class="px-3 py-2 rounded-lg text-slate-800 bg-slate-50 border border-slate-200 placeholder-slate-400 placeholder-font-normal text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 w-full sm:w-80 font-mono tracking-widest">
+                <span id="digitMeta" class="text-xs text-slate-400"></span>
+            </div>
+            <div id="digitOutput" class="mt-4 space-y-2"></div>
+        </div>
+
+        <!-- Controls & Stats Bar -->
+        <div id="controlsBar" class="flex flex-wrap justify-between items-center mb-6 gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <div class="flex items-center gap-2">
+                <button id="expandAllBtn" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">
+                    Expand All
+                </button>
+                <button id="collapseAllBtn" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">
+                    Collapse All
+                </button>
+            </div>
+            <div class="text-xs text-slate-500 font-medium flex items-center gap-4">
+                <span id="savedIndicator" class="text-emerald-600 font-semibold flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                    Saved to LocalStorage
+                </span>
+                <span id="driftIndicator" class="text-slate-400 flex items-center gap-1"></span>
+                <span id="itemCountDisplay">Showing 100 items</span>
+            </div>
+        </div>
+
+        <!-- Duplicate Warning Banner -->
+        <div id="dupBanner" class="dup-banner hidden mb-4 items-start gap-3 bg-red-50 border border-red-200 px-4 py-3 rounded-xl text-sm shadow-sm">
+            <svg class="w-4 h-4 mt-0.5 shrink-0 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path></svg>
+            <div class="min-w-0">
+                <p class="font-semibold text-red-700" id="dupTitle">Duplicate values detected</p>
+                <p class="text-red-600 text-xs mt-0.5 break-words" id="dupSummary"></p>
+            </div>
+        </div>
+
+        <!-- Accordions Container -->
+        <div id="categoriesContainer" class="space-y-4">
+            <!-- Dynamically populated via JavaScript -->
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-6 text-center text-xs text-slate-400">
+        <p>PAO (Person-Action-Object) Memory System Masterclass • Customizations auto-save in your browser session.</p>
+    </footer>
+
+    <!-- Drift Details Modal -->
+    <div id="driftModal" class="pao-modal hidden fixed inset-0 z-50 items-center justify-center bg-slate-900/40 p-4" role="dialog" aria-modal="true" aria-labelledby="driftModalHeading">
+        <div class="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-slate-200">
+                <div>
+                    <h2 id="driftModalHeading" class="text-base font-semibold text-slate-800">Saved edits vs file defaults</h2>
+                    <p id="driftModalMeta" class="text-xs text-slate-500 mt-0.5"></p>
+                </div>
+                <button id="driftModalClose" class="text-slate-400 hover:text-slate-700 text-2xl leading-none px-1 -mt-1" aria-label="Close">&times;</button>
+            </div>
+            <div id="driftModalBody" class="overflow-auto p-5"></div>
+            <div class="px-5 py-3 border-t border-slate-200 text-xs text-slate-400">
+                Click a number to jump to that row. Ask to bake these into the HTML file when you're happy.
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        // Default PAO Data structured by 10 relational categories (00-99)
+        const defaultPAOData = [
+            {
+                id: 'cat-family',
+                emoji: '🏠🧹',
+                title: 'Set 1: Family Members (00-09)',
+                subtitle: 'Cleaning Tasks with Household Items • Closest Relational Proximity',
+                range: [0, 9],
+                items: [
+                    { num: '00', person: 'Meli', action: 'Vacuuming', object: 'Vacuum Cleaner' },
+                    { num: '01', person: 'Mom', action: 'Washing', object: 'Dish Sponge' },
+                    { num: '02', person: 'Dad', action: 'Sweeping', object: 'Broom' },
+                    { num: '03', person: 'James', action: 'Dusting', object: 'Feather Duster' },
+                    { num: '04', person: 'Sarah', action: 'Mopping', object: 'Mop Bucket' },
+                    { num: '05', person: 'Micah', action: 'Scrubbing', object: 'Toothbrush' },
+                    { num: '06', person: 'Mickey', action: 'Wiping', object: 'Paper Towel' },
+                    { num: '07', person: 'Steph', action: 'Polishing', object: 'Windex Spray' },
+                    { num: '08', person: 'Milica', action: 'Organizing', object: 'Storage Bin' },
+                    { num: '09', person: 'Manfred', action: 'Shoveling', object: 'Dustpan' }
+                ]
+            },
+            {
+                id: 'cat-friends',
+                emoji: '👥🎨',
+                title: 'Set 2: Friends or Colleagues (10-19)',
+                subtitle: 'Creative Arts with Stationery',
+                range: [10, 19],
+                items: [
+                    { num: '10', person: 'Matt Kindem', action: 'Sketching', object: 'Sketchpad' },
+                    { num: '11', person: 'Mark Switajski', action: 'Painting', object: 'Paintbrush' },
+                    { num: '12', person: 'Ben Bowman', action: 'Writing', object: 'Ballpoint Pen' },
+                    { num: '13', person: 'Kevin Sorensen', action: 'Drawing', object: 'Marker' },
+                    { num: '14', person: 'Kayla Hewitt', action: 'Stapling', object: 'Stapler' },
+                    { num: '15', person: 'Geoff Sutcliffe', action: 'Cutting', object: 'Scissors' },
+                    { num: '16', person: 'Laura Kovacs', action: 'Gluing', object: 'Glue Stick' },
+                    { num: '17', person: 'Matthias', action: 'Highlighting', object: 'Highlighter' },
+                    { num: '18', person: 'Sophie', action: 'Measuring', object: 'Ruler' },
+                    { num: '19', person: 'Sonja', action: 'Erasing', object: 'Eraser' }
+                ]
+            },
+            {
+                id: 'cat-athletes',
+                emoji: '🏆⚽',
+                title: 'Set 3: Professional Athletes (20-29)',
+                subtitle: 'Sports Movements with Sporting Equipment',
+                range: [20, 29],
+                items: [
+                    { num: '20', person: 'LeBron James', action: 'Slam Dunking', object: 'Basketball' },
+                    { num: '21', person: 'Mew2King', action: 'Wavedashing', object: 'GameCube Controller' },
+                    { num: '22', person: 'Cristiano Ronaldo', action: 'Kicking', object: 'Soccer Ball' },
+                    { num: '23', person: 'Lionel Messi', action: 'Dribbling', object: 'Soccer Cleat' },
+                    { num: '24', person: 'Tom Brady', action: 'Throwing', object: 'Football' },
+                    { num: '25', person: 'Mang0', action: 'Dash Dancing', object: 'CRT Monitor' },
+                    { num: '26', person: 'Michael Jordan', action: 'Rim Hanging', object: 'Basketball Hoop' },
+                    { num: '27', person: 'Usain Bolt', action: 'Sprinting', object: 'Running Spikes' },
+                    { num: '28', person: 'Tiger Woods', action: 'Putting', object: 'Golf Club' },
+                    { num: '29', person: 'Magnus Carlsen', action: 'Blitzing', object: 'Chess Clock' }
+                ]
+            },
+            {
+                id: 'cat-moviestars',
+                emoji: '🎬🍳',
+                title: 'Set 4: Iconic Movie Stars (30-39)',
+                subtitle: 'Cooking and Eating with Food',
+                range: [30, 39],
+                items: [
+                    { num: '30', person: 'Tom Hanks', action: 'Grilling', object: 'Steak' },
+                    { num: '31', person: 'Marilyn Monroe', action: 'Baking', object: 'Chocolate Cake' },
+                    { num: '32', person: 'Brad Pitt', action: 'Chopping', object: 'Carrot' },
+                    { num: '33', person: 'Angelina Jolie', action: 'Blending', object: 'Smoothie' },
+                    { num: '34', person: 'Leonardo DiCaprio', action: 'Frying', object: 'Pancake' },
+                    { num: '35', person: 'Scarlett Johansson', action: 'Boiling', object: 'Spaghetti' },
+                    { num: '36', person: 'Will Smith', action: 'Roasting', object: 'Chicken' },
+                    { num: '37', person: 'Jennifer Lawrence', action: 'Eating', object: 'Banana' },
+                    { num: '38', person: 'Keanu Reeves', action: 'Slicing', object: 'Watermelon' },
+                    { num: '39', person: 'Anne Hathaway', action: 'Toasting', object: 'Bread' }
+                ]
+            },
+            {
+                id: 'cat-musicians',
+                emoji: '🎤🎸',
+                title: 'Set 5: Famous Musicians (40-49)',
+                subtitle: 'Playing Instruments with Musical Instruments',
+                range: [40, 49],
+                items: [
+                    { num: '40', person: 'Elvis Presley', action: 'Strumming', object: 'Acoustic Guitar' },
+                    { num: '41', person: 'Michael Jackson', action: 'Pounding', object: 'Grand Piano' },
+                    { num: '42', person: 'Beyoncé', action: 'Beating', object: 'Drum Kit' },
+                    { num: '43', person: 'Freddie Mercury', action: 'Plucking', object: 'Electric Bass' },
+                    { num: '44', person: 'Taylor Swift', action: 'Bowing', object: 'Violin' },
+                    { num: '45', person: 'Prince', action: 'Blowing', object: 'Saxophone' },
+                    { num: '46', person: 'David Bowie', action: 'Squeezing', object: 'Accordion' },
+                    { num: '47', person: 'Madonna', action: 'Tooting', object: 'Trumpet' },
+                    { num: '48', person: 'Bob Marley', action: 'Rattling', object: 'Bongo Drums' },
+                    { num: '49', person: 'Eminem', action: 'Scratching', object: 'DJ Turntable' }
+                ]
+            },
+            {
+                id: 'cat-superheroes',
+                emoji: '🦸👕',
+                title: 'Set 6: Superheroes (50-59)',
+                subtitle: 'Putting On Costumes and Accessories',
+                range: [50, 59],
+                items: [
+                    { num: '50', person: 'Batman', action: 'Swirling', object: 'Black Cape' },
+                    { num: '51', person: 'Superman', action: 'Tugging On', object: 'Red Boots' },
+                    { num: '52', person: 'Spider-Man', action: 'Yanking Over', object: 'Mask' },
+                    { num: '53', person: 'Wonder Woman', action: 'Clasping', object: 'Tiara' },
+                    { num: '54', person: 'Iron Man', action: 'Sealing', object: 'Helmet' },
+                    { num: '55', person: 'Thor', action: 'Draping', object: 'Red Cloak' },
+                    { num: '56', person: 'Captain America', action: 'Buckling', object: 'Shield Emblem' },
+                    { num: '57', person: 'Hulk', action: 'Shredding', object: 'Purple Shorts' },
+                    { num: '58', person: 'Black Panther', action: 'Hooking', object: 'Necklace' },
+                    { num: '59', person: 'Flash', action: 'Snapping', object: 'Running Gloves' }
+                ]
+            },
+            {
+                id: 'cat-cartoons',
+                emoji: '🐰🚗',
+                title: 'Set 7: Cartoon Characters (60-69)',
+                subtitle: 'Operating Vehicles with Cartoon Vehicles',
+                range: [60, 69],
+                items: [
+                    { num: '60', person: 'Mickey Mouse', action: 'Driving', object: 'Toontown Roadster' },
+                    { num: '61', person: 'Bugs Bunny', action: 'Steering', object: 'Carrot Mobile' },
+                    { num: '62', person: 'Homer Simpson', action: 'Piloting', object: 'Duff Beer Blimp' },
+                    { num: '63', person: 'SpongeBob SquarePants', action: 'Riding', object: 'Patty Wagon' },
+                    { num: '64', person: 'Scooby-Doo', action: 'Cruising', object: 'Mystery Machine' },
+                    { num: '65', person: 'Fred Flintstone', action: 'Pedaling', object: 'Foot-Powered Car' },
+                    { num: '66', person: 'Pikachu', action: 'Zooming', object: 'Lightning McQueen Car' },
+                    { num: '67', person: 'Mario', action: 'Racing', object: 'Go-Kart' },
+                    { num: '68', person: 'Luigi', action: 'Flying', object: 'TIE Fighter' },
+                    { num: '69', person: 'Bender', action: 'Hovering', object: 'Hovercar' }
+                ]
+            },
+            {
+                id: 'cat-politicians',
+                emoji: '🏛️🔬',
+                title: 'Set 8: Politicians (70-79)',
+                subtitle: 'Scientific Experiments with Living Things',
+                range: [70, 79],
+                items: [
+                    { num: '70', person: 'Abraham Lincoln', action: 'Cloning', object: 'Lab Mouse' },
+                    { num: '71', person: 'George Washington', action: 'Microscoping', object: 'Fruit Fly' },
+                    { num: '72', person: 'Barack Obama', action: 'Analyzing', object: 'Zebrafish' },
+                    { num: '73', person: 'Winston Churchill', action: 'Injecting', object: 'Guinea Pig' },
+                    { num: '74', person: 'Nelson Mandela', action: 'Cultivating', object: 'E. Coli Bacteria' },
+                    { num: '75', person: 'Franklin D. Roosevelt', action: 'Breeding', object: 'Laboratory Rat' },
+                    { num: '76', person: 'John F. Kennedy', action: 'Sequencing', object: 'Plant Shoot' },
+                    { num: '77', person: 'Theodore Roosevelt', action: 'Examining', object: 'Frog Specimen' },
+                    { num: '78', person: 'Angela Merkel', action: 'Centrifuging', object: 'Yeast Culture' },
+                    { num: '79', person: 'Mahatma Gandhi', action: 'Observing', object: 'Ant Colony' }
+                ]
+            },
+            {
+                id: 'cat-historical',
+                emoji: '🗿🪑',
+                title: 'Set 9: Historical Figures (80-89)',
+                subtitle: 'Building and Fixing with Furniture',
+                range: [80, 89],
+                items: [
+                    { num: '80', person: 'Albert Einstein', action: 'Sanding', object: 'Wooden Desk' },
+                    { num: '81', person: 'Cleopatra', action: 'Upholstering', object: 'Velvet Sofa' },
+                    { num: '82', person: 'Leonardo da Vinci', action: 'Carving', object: 'Dining Chair' },
+                    { num: '83', person: 'Julius Caesar', action: 'Hammering', object: 'Bookshelf' },
+                    { num: '84', person: 'Joan of Arc', action: 'Refinishing', object: 'Coffee Table' },
+                    { num: '85', person: 'Adolf Hitler', action: 'Nailing', object: 'Nightstand' },
+                    { num: '86', person: 'Galileo Galilei', action: 'Varnishing', object: 'Rocking Chair' },
+                    { num: '87', person: 'Isaac Newton', action: 'Assembling', object: 'Wardrobe' },
+                    { num: '88', person: 'Benjamin Franklin', action: 'Repairing', object: 'Grandfather Clock' },
+                    { num: '89', person: 'Napoléon Bonaparte', action: 'Staining', object: 'Stool' }
+                ]
+            },
+            {
+                id: 'cat-fictional',
+                emoji: '🧙💻',
+                title: 'Set 10: Fictional Characters (90-99)',
+                subtitle: 'Using Technology with Tech Gadgets • Furthest Relational Proximity',
+                range: [90, 99],
+                items: [
+                    { num: '90', person: 'Sherlock Holmes', action: 'Tapping', object: 'Smartphone' },
+                    { num: '91', person: 'Harry Potter', action: 'Swiping', object: 'Tablet' },
+                    { num: '92', person: 'Darth Vader', action: 'Typing', object: 'Mechanical Keyboard' },
+                    { num: '93', person: 'Gandalf', action: 'Streaming', object: 'Smart TV' },
+                    { num: '94', person: 'Katniss Everdeen', action: 'Coding', object: 'Laptop' },
+                    { num: '95', person: 'Luke Skywalker', action: 'Scanning', object: 'Barcode Reader' },
+                    { num: '96', person: 'Frodo Baggins', action: 'Printing', object: 'Wireless Printer' },
+                    { num: '97', person: 'James Bond', action: 'Hacking', object: 'Smartwatch' },
+                    { num: '98', person: 'Dracula', action: 'Charging', object: 'Power Bank' },
+                    { num: '99', person: 'Alice in Wonderland', action: 'Rendering', object: 'VR Headset' }
+                ]
+            }
+        ];
+
+        // Emoji per category — used if a category object lacks its own emoji
+        // (e.g. data previously saved to LocalStorage before emojis existed)
+        const CATEGORY_EMOJI = {
+            'cat-family': '🏠🧹',
+            'cat-friends': '👥🎨',
+            'cat-athletes': '🏆⚽',
+            'cat-moviestars': '🎬🍳',
+            'cat-musicians': '🎤🎸',
+            'cat-superheroes': '🦸👕',
+            'cat-cartoons': '🐰🚗',
+            'cat-politicians': '🏛️🔬',
+            'cat-historical': '🗿🪑',
+            'cat-fictional': '🧙💻'
+        };
+
+        // Load data from LocalStorage or fallback to a deep copy of the defaults
+        // (deep copy so edits can never mutate the hardcoded defaultPAOData)
+        let paoData = JSON.parse(localStorage.getItem('pao_memory_data')) || JSON.parse(JSON.stringify(defaultPAOData));
+
+        // Render Application
+        function renderPAOApp(filterText = '') {
+            const container = document.getElementById('categoriesContainer');
+            container.innerHTML = '';
+
+            let totalVisibleItems = 0;
+            const searchLower = filterText.toLowerCase();
+
+            paoData.forEach((category, catIndex) => {
+                // Filter items based on search query
+                const filteredItems = category.items.filter(item => {
+                    if (!filterText) return true;
+                    return item.num.includes(searchLower) ||
+                           item.person.toLowerCase().includes(searchLower) ||
+                           item.action.toLowerCase().includes(searchLower) ||
+                           item.object.toLowerCase().includes(searchLower);
+                });
+
+                totalVisibleItems += filteredItems.length;
+
+                // If searching and no items match in this category, hide category card
+                if (filterText && filteredItems.length === 0) return;
+
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition';
+                card.id = `card-${category.id}`;
+
+                // Accordion Header
+                const header = document.createElement('div');
+                header.className = 'bg-slate-100 hover:bg-slate-200/70 px-5 py-4 cursor-pointer flex justify-between items-center select-none transition';
+                header.innerHTML = `
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-base font-semibold text-slate-800">${category.emoji || CATEGORY_EMOJI[category.id] || '🏷️'} ${category.title}</h2>
+                            <span class="bg-indigo-100 text-indigo-700 text-xs px-2.5 py-0.5 rounded-full font-medium">${category.range[0].toString().padStart(2, '0')}–${category.range[1]}</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-0.5">${category.subtitle}</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-slate-400 hidden sm:inline">${filteredItems.length} items</span>
+                        <svg class="w-5 h-5 text-slate-500 transform transition-transform duration-200 chevron-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                `;
+
+                // Accordion Content Body
+                const body = document.createElement('div');
+                // Keep open if filter is active, otherwise default to closed or open first
+                const isOpen = filterText.length > 0 || catIndex === 0; 
+                body.className = `accordion-body border-t border-slate-200 p-4 sm:p-6 bg-white ${isOpen ? '' : 'hidden'}`;
+                if (isOpen) {
+                    header.querySelector('.chevron-icon').classList.add('rotate-180');
+                }
+
+                // Table for items
+                const tableWrapper = document.createElement('div');
+                tableWrapper.className = 'overflow-x-auto';
+                
+                let tableHTML = `
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                <th class="py-2.5 px-3 w-16">No.</th>
+                                <th class="py-2.5 px-3">Person</th>
+                                <th class="py-2.5 px-3">Action</th>
+                                <th class="py-2.5 px-3">Object</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                `;
+
+                filteredItems.forEach(item => {
+                    // Find actual index in original category array for updating
+                    const originalIndex = category.items.findIndex(i => i.num === item.num);
+                    tableHTML += `
+                        <tr class="hover:bg-slate-50/80 transition group">
+                            <td class="py-3 px-3 font-mono font-bold text-indigo-600 bg-indigo-50/40 rounded-l-lg">${item.num}</td>
+                            <td class="py-3 px-3">
+                                <input type="text" value="${escapeHTML(item.person)}" 
+                                    data-cat="${catIndex}" data-index="${originalIndex}" data-field="person"
+                                    class="pao-input w-full bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-indigo-500 rounded px-2 py-1 transition focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-700 font-medium">
+                            </td>
+                            <td class="py-3 px-3">
+                                <input type="text" value="${escapeHTML(item.action)}" 
+                                    data-cat="${catIndex}" data-index="${originalIndex}" data-field="action"
+                                    class="pao-input w-full bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-indigo-500 rounded px-2 py-1 transition focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-700">
+                            </td>
+                            <td class="py-3 px-3 rounded-r-lg">
+                                <input type="text" value="${escapeHTML(item.object)}" 
+                                    data-cat="${catIndex}" data-index="${originalIndex}" data-field="object"
+                                    class="pao-input w-full bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-indigo-500 rounded px-2 py-1 transition focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-700">
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tableHTML += `</tbody></table>`;
+                tableWrapper.innerHTML = tableHTML;
+                body.appendChild(tableWrapper);
+
+                // Toggle functionality
+                header.addEventListener('click', () => {
+                    body.classList.toggle('hidden');
+                    header.querySelector('.chevron-icon').classList.toggle('rotate-180');
+                });
+
+                card.appendChild(header);
+                card.appendChild(body);
+                container.appendChild(card);
+            });
+
+            document.getElementById('itemCountDisplay').innerText = `Showing ${totalVisibleItems} of 100 items`;
+
+            // Attach input event listeners for live saving
+            attachInputListeners();
+
+            // Flag any repeated values in the freshly rendered rows
+            updateDuplicateUI();
+
+            // Show how far the saved data is from the file's hardcoded defaults
+            updateDriftUI();
+        }
+
+        // --- Duplicate detection -------------------------------------------------
+        const DUP_FIELDS = ['person', 'action', 'object'];
+        const DUP_LABELS = { person: 'Person', action: 'Action', object: 'Object' };
+
+        function normalizeDupValue(value) {
+            return (value || '').trim().toLowerCase();
+        }
+
+        // Builds per-field maps of values that appear in more than one slot
+        function computeDuplicates() {
+            const dups = { person: new Map(), action: new Map(), object: new Map() };
+
+            paoData.forEach(category => {
+                category.items.forEach(item => {
+                    DUP_FIELDS.forEach(field => {
+                        const key = normalizeDupValue(item[field]);
+                        if (!key) return;
+                        const map = dups[field];
+                        const entry = map.get(key) || { count: 0, display: item[field].trim(), nums: [] };
+                        entry.count++;
+                        entry.nums.push(item.num);
+                        map.set(key, entry);
+                    });
+                });
+            });
+
+            DUP_FIELDS.forEach(field => {
+                dups[field] = new Map([...dups[field]].filter(([, entry]) => entry.count > 1));
+            });
+
+            return dups;
+        }
+
+        function updateDuplicateUI() {
+            const dups = computeDuplicates();
+
+            // Highlight every input whose current value is repeated in its own field
+            document.querySelectorAll('.pao-input').forEach(input => {
+                const field = input.getAttribute('data-field');
+                const entry = dups[field] && dups[field].get(normalizeDupValue(input.value));
+                input.classList.toggle('pao-dup', Boolean(entry));
+                if (entry) {
+                    input.title = `Duplicate ${DUP_LABELS[field].toLowerCase()}: "${entry.display}" appears ${entry.count} times`;
+                } else {
+                    input.removeAttribute('title');
+                }
+            });
+
+            // Summarize all clashing values (counted from data, so hidden rows still count)
+            const summary = document.getElementById('dupSummary');
+            summary.innerHTML = '';
+            let totalClashes = 0;
+            let firstField = true;
+
+            DUP_FIELDS.forEach(field => {
+                const entries = [...dups[field].values()];
+                if (!entries.length) return;
+                totalClashes += entries.length;
+
+                if (!firstField) summary.appendChild(document.createTextNode('   •   '));
+                firstField = false;
+
+                const segment = document.createElement('span');
+                segment.appendChild(document.createTextNode(`${DUP_LABELS[field]}: `));
+
+                entries.forEach((entry, entryIdx) => {
+                    if (entryIdx) segment.appendChild(document.createTextNode(', '));
+
+                    const value = document.createElement('span');
+                    value.className = 'font-semibold text-red-700';
+                    value.textContent = `"${entry.display}" ×${entry.count}`;
+                    segment.appendChild(value);
+
+                    [...entry.nums].sort().forEach(num => {
+                        const chip = document.createElement('button');
+                        chip.type = 'button';
+                        chip.className = 'pao-jump ml-1 font-mono text-[10px] px-1.5 rounded bg-red-100 hover:bg-red-200 text-red-700 align-middle';
+                        chip.setAttribute('data-num', num);
+                        chip.title = `Jump to ${num}`;
+                        chip.textContent = num;
+                        segment.appendChild(chip);
+                    });
+                });
+
+                summary.appendChild(segment);
+            });
+
+            const banner = document.getElementById('dupBanner');
+            if (totalClashes) {
+                banner.classList.remove('hidden');
+                document.getElementById('dupTitle').textContent =
+                    `${totalClashes} duplicate value${totalClashes === 1 ? '' : 's'} across Person, Action or Object`;
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        // --- File-vs-LocalStorage drift -------------------------------------------
+        // Counts Person/Action/Object slots where saved data differs from the
+        // defaults hardcoded in this file, so you know when to bake changes in.
+        const DUP_ICONS = {
+            check: '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>',
+            warn: '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path></svg>'
+        };
+
+        function computeFileDrift() {
+            const live = {};
+            paoData.forEach(category => category.items.forEach(item => { live[item.num] = item; }));
+
+            const details = [];
+            defaultPAOData.forEach(category => {
+                category.items.forEach(defaultItem => {
+                    const liveItem = live[defaultItem.num];
+                    if (!liveItem) return;
+                    ['person', 'action', 'object'].forEach(field => {
+                        if ((defaultItem[field] || '') !== (liveItem[field] || '')) {
+                            details.push({
+                                num: defaultItem.num,
+                                field,
+                                from: defaultItem[field] || '',
+                                to: liveItem[field] || ''
+                            });
+                        }
+                    });
+                });
+            });
+
+            const perField = { person: 0, action: 0, object: 0 };
+            details.forEach(detail => { perField[detail.field]++; });
+
+            return { count: details.length, perField, details };
+        }
+
+        function updateDriftUI() {
+            const el = document.getElementById('driftIndicator');
+            const { count, perField } = computeFileDrift();
+
+            if (!count) {
+                el.className = 'text-emerald-600 font-semibold flex items-center gap-1';
+                el.innerHTML = `${DUP_ICONS.check} Matches file defaults`;
+                el.title = 'Your saved data is identical to the defaults hardcoded in this HTML file.';
+                el.classList.remove('cursor-pointer', 'hover:underline');
+            } else {
+                el.className = 'text-amber-600 font-semibold flex items-center gap-1 cursor-pointer hover:underline';
+                el.innerHTML = `${DUP_ICONS.warn} ${count} value${count === 1 ? '' : 's'} ahead of file defaults`;
+                el.title = `Saved data differs from the file defaults: ${perField.person} person, ${perField.action} action, ${perField.object} object. Click to see which ones.`;
+                el.setAttribute('role', 'button');
+                el.setAttribute('tabindex', '0');
+            }
+        }
+
+        // --- Drift details modal --------------------------------------------------
+        function openDriftModal() {
+            const { count, perField, details } = computeFileDrift();
+            const body = document.getElementById('driftModalBody');
+            const meta = document.getElementById('driftModalMeta');
+
+            body.innerHTML = '';
+            meta.textContent = count
+                ? `${count} value${count === 1 ? '' : 's'} differ — ${perField.person} person, ${perField.action} action, ${perField.object} object`
+                : 'Saved data matches the file defaults.';
+
+            if (count) {
+                const table = document.createElement('table');
+                table.className = 'w-full text-left text-sm border-collapse';
+                table.innerHTML = `<thead>
+                        <tr class="border-b border-slate-200 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                            <th class="py-2 px-2 w-16">No.</th>
+                            <th class="py-2 px-2 w-24">Field</th>
+                            <th class="py-2 px-2">File default</th>
+                            <th class="py-2 px-2">Your saved value</th>
+                        </tr>
+                    </thead>`;
+
+                const tbody = document.createElement('tbody');
+                tbody.className = 'divide-y divide-slate-100';
+
+                [...details]
+                    .sort((a, b) => a.num.localeCompare(b.num) || a.field.localeCompare(b.field))
+                    .forEach(detail => {
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-slate-50';
+
+                        const noCell = document.createElement('td');
+                        noCell.className = 'py-2 px-2';
+                        const jump = document.createElement('button');
+                        jump.type = 'button';
+                        jump.className = 'pao-jump font-mono font-bold text-indigo-600 hover:underline';
+                        jump.setAttribute('data-num', detail.num);
+                        jump.title = `Jump to ${detail.num}`;
+                        jump.textContent = detail.num;
+                        noCell.appendChild(jump);
+
+                        const fieldCell = document.createElement('td');
+                        fieldCell.className = 'py-2 px-2 text-xs text-slate-500 capitalize';
+                        fieldCell.textContent = detail.field;
+
+                        const fromCell = document.createElement('td');
+                        fromCell.className = 'py-2 px-2 text-slate-400 line-through';
+                        fromCell.textContent = detail.from;
+
+                        const toCell = document.createElement('td');
+                        toCell.className = 'py-2 px-2 text-slate-800 font-medium';
+                        toCell.textContent = detail.to;
+
+                        row.append(noCell, fieldCell, fromCell, toCell);
+                        tbody.appendChild(row);
+                    });
+
+                table.appendChild(tbody);
+                body.appendChild(table);
+            }
+
+            document.getElementById('driftModal').classList.remove('hidden');
+        }
+
+        function closeDriftModal() {
+            document.getElementById('driftModal').classList.add('hidden');
+        }
+
+        // Expand the owning category, scroll to a number's row and flash it
+        function jumpToNumber(num) {
+            let catIdx = -1;
+            let itemIdx = -1;
+            paoData.forEach((category, ci) => {
+                category.items.forEach((item, ii) => {
+                    if (item.num === num) { catIdx = ci; itemIdx = ii; }
+                });
+            });
+            if (catIdx === -1) return;
+
+            const card = document.getElementById(`card-${paoData[catIdx].id}`);
+            if (!card) {
+                const search = document.getElementById('globalSearch');
+                if (search.value) {
+                    search.value = '';
+                    renderPAOApp();
+                    requestAnimationFrame(() => jumpToNumber(num));
+                }
+                return;
+            }
+
+            const body = card.querySelector('.accordion-body');
+            const chevron = card.querySelector('.chevron-icon');
+            if (body.classList.contains('hidden')) {
+                body.classList.remove('hidden');
+                chevron.classList.add('rotate-180');
+            }
+
+            const input = card.querySelector(`.pao-input[data-cat="${catIdx}"][data-index="${itemIdx}"]`);
+            const row = input ? input.closest('tr') : card;
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (input) {
+                row.classList.remove('pao-flash');
+                void row.offsetWidth;
+                row.classList.add('pao-flash');
+                input.focus({ preventScroll: true });
+            }
+        }
+
+        // --- Digit → picture converter -------------------------------------------
+        // Every 6 digits becomes one image: 2 = Person, 2 = Action, 2 = Object.
+        function buildPAOLookup() {
+            const lookup = { person: {}, action: {}, object: {} };
+            paoData.forEach(category => {
+                category.items.forEach(item => {
+                    lookup.person[item.num] = item.person;
+                    lookup.action[item.num] = item.action;
+                    lookup.object[item.num] = item.object;
+                });
+            });
+            return lookup;
+        }
+
+        function renderDigits(rawDigits) {
+            const lookup = buildPAOLookup();
+            const output = document.getElementById('digitOutput');
+            const complete = Math.floor(rawDigits.length / 6);
+
+            output.innerHTML = '';
+            document.getElementById('digitMeta').textContent = rawDigits.length
+                ? `${rawDigits.length} digit${rawDigits.length === 1 ? '' : 's'} → ${complete} picture${complete === 1 ? '' : 's'}`
+                : '';
+
+            for (let i = 0; i < complete; i++) {
+                const chunk = rawDigits.substr(i * 6, 6);
+                const num = { person: chunk.substr(0, 2), action: chunk.substr(2, 2), object: chunk.substr(4, 2) };
+                const row = document.createElement('div');
+                row.className = 'flex flex-wrap items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2';
+                row.innerHTML = `
+                    <span class="font-mono text-sm font-bold tracking-widest whitespace-nowrap">
+                        <span class="text-indigo-600">${num.person}</span><span class="text-rose-600">${num.action}</span><span class="text-emerald-600">${num.object}</span>
+                    </span>
+                    <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                    <span class="text-sm text-slate-700">
+                        <span class="font-semibold text-indigo-700">${escapeHTML(lookup.person[num.person] || '?')}</span>
+                        <span class="text-slate-400 mx-1">·</span>
+                        <span class="font-semibold text-rose-700">${escapeHTML(lookup.action[num.action] || '?')}</span>
+                        <span class="text-slate-400 mx-1">·</span>
+                        <span class="font-semibold text-emerald-700">${escapeHTML(lookup.object[num.object] || '?')}</span>
+                    </span>`;
+                output.appendChild(row);
+            }
+
+            const leftover = rawDigits.length % 6;
+            if (leftover) {
+                const hint = document.createElement('div');
+                hint.className = 'text-xs text-slate-400 font-mono';
+                hint.textContent = `Incomplete: ${rawDigits.substr(complete * 6)} (${6 - leftover} more digit${6 - leftover === 1 ? '' : 's'} needed)`;
+                output.appendChild(hint);
+            }
+        }
+
+        // --- Practice / spaced-repetition quiz ------------------------------------
+        const QUIZ_KEY = 'pao_quiz_progress';
+        const QUIZ_META_KEY = 'pao_quiz_meta';
+        const QUIZ_MIN = 60 * 1000;
+        const QUIZ_DAY = 24 * 60 * 60 * 1000;
+        const QUIZ_FIELD_LABELS = { person: 'Person', action: 'Action', object: 'Object' };
+
+        let quizProgress = {};
+        let quizMeta = { answered: 0, correct: 0 };
+        try { quizProgress = JSON.parse(localStorage.getItem(QUIZ_KEY)) || {}; } catch (e) { quizProgress = {}; }
+        try { quizMeta = JSON.parse(localStorage.getItem(QUIZ_META_KEY)) || quizMeta; } catch (e) { /* keep defaults */ }
+
+        let quizSession = null;
+
+        function quizKey(num, field) { return `${num}:${field}`; }
+
+        function quizStateFor(num, field) {
+            const key = quizKey(num, field);
+            let state = quizProgress[key];
+            if (!state) {
+                state = { reps: 0, lapses: 0, ease: 2.5, interval: 0, due: 0, recent: [] };
+                quizProgress[key] = state;
+            }
+            if (!Array.isArray(state.recent)) state.recent = [];
+            return state;
+        }
+
+        function isNewQuizItem(num, field) {
+            const state = quizProgress[quizKey(num, field)];
+            return !state || (state.reps === 0 && state.lapses === 0 && state.recent.length === 0);
+        }
+
+        function saveQuizProgress() { localStorage.setItem(QUIZ_KEY, JSON.stringify(quizProgress)); }
+        function saveQuizMeta() { localStorage.setItem(QUIZ_META_KEY, JSON.stringify(quizMeta)); }
+
+        function shuffle(list) {
+            for (let i = list.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [list[i], list[j]] = [list[j], list[i]];
+            }
+            return list;
+        }
+
+        // Case-insensitive, diacritic- and punctuation-tolerant comparison
+        function normalizeQuiz(value) {
+            return (value || '')
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/[^a-z0-9\s]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function quizItemByNum(field, num) {
+            let value = '';
+            paoData.forEach(category => category.items.forEach(item => {
+                if (item.num === num) value = (item[field] || '').trim();
+            }));
+            return value;
+        }
+
+        // Adaptive type: shaky recall -> multiple choice, solid recall -> typed
+        function quizModeFor(state) {
+            const setting = document.getElementById('quizAnswerMode').value;
+            if (setting !== 'auto') return setting;
+            const recent = state.recent;
+            if (recent.length === 0) return 'mc';
+            const rate = recent.reduce((a, b) => a + b, 0) / recent.length;
+            if (recent.length >= 2 && rate >= 0.8) return 'typed';
+            return 'mc';
+        }
+
+        function quizOptions(field, correct) {
+            const seen = new Set();
+            const pool = [];
+            paoData.forEach(category => category.items.forEach(item => {
+                const value = (item[field] || '').trim();
+                const norm = normalizeQuiz(value);
+                if (value && norm !== normalizeQuiz(correct) && !seen.has(norm)) {
+                    seen.add(norm);
+                    pool.push(value);
+                }
+            }));
+            shuffle(pool);
+            const options = pool.slice(0, 3);
+            options.push(correct);
+            return shuffle(options);
+        }
+
+        // --- "Whole image" mode helpers -------------------------------------------
+        function quizImageParts(num) {
+            return {
+                person: quizItemByNum('person', num),
+                action: quizItemByNum('action', num),
+                object: quizItemByNum('object', num)
+            };
+        }
+
+        function quizImageText(num) {
+            const p = quizImageParts(num);
+            return `${p.person} ${p.action} ${p.object}`;
+        }
+
+        function quizImageSpan(num) {
+            const p = quizImageParts(num);
+            return `<span class="text-indigo-600">${escapeHTML(p.person)}</span> ` +
+                   `<span class="text-rose-500">${escapeHTML(p.action)}</span> ` +
+                   `<span class="text-emerald-600">${escapeHTML(p.object)}</span>`;
+        }
+
+        // 3 random full triples + the correct one, shuffled
+        function quizImageOptions(num) {
+            const others = [];
+            paoData.forEach(category => category.items.forEach(item => {
+                if (item.num !== num) others.push(item.num);
+            }));
+            shuffle(others);
+            const options = others.slice(0, 3).map(n => ({ num: n }));
+            options.push({ num });
+            return shuffle(options);
+        }
+
+        function quizCounts() {
+            const now = Date.now();
+            const counts = { due: 0, fresh: 0, learning: 0, mature: 0 };
+            paoData.forEach(category => category.items.forEach(item => {
+                DUP_FIELDS.forEach(field => {
+                    const state = quizProgress[quizKey(item.num, field)];
+                    if (!state || (state.reps === 0 && state.lapses === 0 && state.recent.length === 0)) {
+                        counts.fresh++;
+                        return;
+                    }
+                    if (state.due <= now) counts.due++;
+                    if (state.interval >= 21 * QUIZ_DAY) counts.mature++;
+                    else counts.learning++;
+                });
+            }));
+            return counts;
+        }
+
+        function gradeQuizItem(state, correct) {
+            const now = Date.now();
+            state.recent.push(correct ? 1 : 0);
+            if (state.recent.length > 5) state.recent.shift();
+
+            if (correct) {
+                state.reps++;
+                state.ease = Math.min(2.8, state.ease + 0.05);
+                if (state.reps === 1) state.interval = QUIZ_DAY;
+                else if (state.reps === 2) state.interval = 3 * QUIZ_DAY;
+                else state.interval = Math.min(180 * QUIZ_DAY, Math.round(state.interval * state.ease));
+            } else {
+                state.reps = 0;
+                state.lapses++;
+                state.ease = Math.max(1.3, state.ease - 0.2);
+                state.interval = 10 * QUIZ_MIN;
+            }
+            state.due = now + state.interval;
+        }
+
+        function setPracticeMode(on) {
+            document.getElementById('practiceView').classList.toggle('hidden', !on);
+            ['converterCard', 'controlsBar', 'dupBanner', 'categoriesContainer'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', on);
+            });
+
+            const btn = document.getElementById('practiceBtn');
+            btn.textContent = on ? 'Browse' : 'Practice';
+            btn.classList.toggle('bg-emerald-500', !on);
+            btn.classList.toggle('hover:bg-emerald-400', !on);
+            btn.classList.toggle('bg-indigo-500', on);
+            btn.classList.toggle('hover:bg-indigo-400', on);
+
+            if (on) {
+                startQuizSession();
+            } else {
+                quizSession = null;
+                updateDuplicateUI();
+                updateDriftUI();
+            }
+        }
+
+        // Question style: 'parts' (person/action/object separately) or 'image' (whole triple)
+        function currentQuizStyle() {
+            const el = document.getElementById('quizStyle');
+            return el ? el.value : 'parts';
+        }
+
+        // Number scope: 'all' (spaced-repetition pool) or 'selected' (only the entered numbers)
+        function currentQuizScope() {
+            const el = document.getElementById('quizScope');
+            return el ? el.value : 'all';
+        }
+
+        // Parse the "Selected few" pool: returns an array of 2-digit numbers, or null (= all)
+        function parseQuizPool() {
+            const input = document.getElementById('quizPoolInput');
+            if (!input) return null;
+            const tokens = (input.value.match(/\d+/g) || []).filter(t => t.length <= 2);
+            const nums = [...new Set(tokens.map(t => t.padStart(2, '0')))];
+            return nums.length ? nums : null;
+        }
+
+        function startQuizSession() {
+            const size = parseInt(document.getElementById('quizSessionSize').value, 10) || 20;
+            const style = currentQuizStyle();
+            const scope = currentQuizScope();
+            const pool = scope === 'selected' ? parseQuizPool() : null;
+            const dueNums = [];
+            const newNums = [];
+
+            paoData.forEach(category => category.items.forEach(item => {
+                const num = item.num;
+                if (pool && !pool.includes(num)) return;
+                // Selecting specific numbers is a focused drill — always eligible, ignore the schedule
+                if (scope === 'selected') { dueNums.push(num); return; }
+                const hasDue = DUP_FIELDS.some(field => {
+                    const state = quizProgress[quizKey(num, field)];
+                    return state && state.due <= Date.now();
+                });
+                const hasNew = DUP_FIELDS.some(field => isNewQuizItem(num, field));
+                if (hasDue) dueNums.push(num);
+                else if (hasNew) newNums.push(num);
+            }));
+
+            shuffle(dueNums);
+            shuffle(newNums);
+            const nums = dueNums.concat(newNums).slice(0, size);
+            const fields = style === 'image' ? ['image'] : DUP_FIELDS.slice();
+
+            quizSession = {
+                style,
+                scope,
+                queue: nums.map(num => ({ num, fields: fields.slice() })),
+                pos: 0,
+                fieldIdx: 0,
+                answered: 0,
+                correct: 0,
+                planned: nums.length,
+                locked: false
+            };
+            renderQuiz();
+        }
+
+        function renderQuiz() {
+            const card = document.getElementById('quizCard');
+
+            if (!quizSession || quizSession.pos >= quizSession.queue.length) {
+                renderQuizSummary();
+                return;
+            }
+
+            const entry = quizSession.queue[quizSession.pos];
+            const imageMode = quizSession.style === 'image';
+            const field = imageMode ? 'image' : entry.fields[quizSession.fieldIdx];
+            const correct = imageMode ? quizImageText(entry.num) : quizItemByNum(field, entry.num);
+            const state = quizStateFor(entry.num, imageMode ? 'person' : field);
+            const mode = imageMode ? 'mc' : quizModeFor(state);
+            const fieldLabel = imageMode ? 'Whole image' : QUIZ_FIELD_LABELS[field];
+            const prompt = imageMode ? 'Which image belongs to this number?' : `What is the <b>${fieldLabel}</b>?`;
+
+            quizSession.locked = false;
+            updateQuizStats();
+
+            card.innerHTML = `
+                <div class="max-w-xl mx-auto text-center">
+                    <p class="text-xs uppercase tracking-widest text-slate-400 font-semibold">Question ${quizSession.answered + 1} · ${fieldLabel}</p>
+                    <div class="font-mono text-6xl font-bold text-indigo-600 my-5">${escapeHTML(entry.num)}</div>
+                    <p class="text-slate-600 mb-6">${prompt}</p>
+                    <div id="quizAnswerArea"></div>
+                    <div id="quizFeedback" class="mt-5 min-h-[3.5rem]"></div>
+                    <button id="quizNextBtn" class="hidden mt-1 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">Next</button>
+                </div>`;
+
+            const area = document.getElementById('quizAnswerArea');
+            if (imageMode) {
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-1 gap-3';
+                quizImageOptions(entry.num).forEach((option, idx) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'quiz-option text-left px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 text-slate-700 font-medium transition flex items-center gap-3';
+                    btn.setAttribute('data-value', option.num);
+                    btn.innerHTML = `<span class="text-[10px] text-slate-400 font-mono border border-slate-200 rounded px-1">${idx + 1}</span><span>${quizImageSpan(option.num)}</span>`;
+                    grid.appendChild(btn);
+                });
+                area.appendChild(grid);
+            } else if (mode === 'mc') {
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-3';
+                quizOptions(field, correct).forEach((option, idx) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'quiz-option text-left px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 text-slate-700 font-medium transition flex items-center gap-3';
+                    btn.setAttribute('data-value', option);
+                    btn.innerHTML = `<span class="text-[10px] text-slate-400 font-mono border border-slate-200 rounded px-1">${idx + 1}</span><span>${escapeHTML(option)}</span>`;
+                    grid.appendChild(btn);
+                });
+                area.appendChild(grid);
+            } else {
+                const wrap = document.createElement('div');
+                wrap.className = 'flex flex-col sm:flex-row gap-3 justify-center';
+                wrap.innerHTML = `
+                    <input id="quizTypeInput" type="text" autocomplete="off" spellcheck="false" placeholder="Type your answer…"
+                        class="px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 sm:w-72">
+                    <button id="quizCheckBtn" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">Check</button>`;
+                area.appendChild(wrap);
+
+                const input = document.getElementById('quizTypeInput');
+                input.focus();
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); submitQuizAnswer(input.value); }
+                });
+            }
+        }
+
+        function submitQuizAnswer(given) {
+            if (!quizSession || quizSession.locked) return;
+            const entry = quizSession.queue[quizSession.pos];
+            if (!entry) return;
+
+            const imageMode = quizSession.style === 'image';
+            let isCorrect, correctValue;
+
+            if (imageMode) {
+                isCorrect = given === entry.num;
+                correctValue = quizImageText(entry.num);
+            } else {
+                const field = entry.fields[quizSession.fieldIdx];
+                correctValue = quizItemByNum(field, entry.num);
+                const givenNorm = normalizeQuiz(given);
+                isCorrect = givenNorm !== '' && givenNorm === normalizeQuiz(correctValue);
+            }
+
+            quizSession.locked = true;
+
+            // Image mode grades all three aspects together
+            if (imageMode) {
+                DUP_FIELDS.forEach(field => gradeQuizItem(quizStateFor(entry.num, field), isCorrect));
+            } else {
+                gradeQuizItem(quizStateFor(entry.num, entry.fields[quizSession.fieldIdx]), isCorrect);
+            }
+            saveQuizProgress();
+
+            quizMeta.answered++;
+            if (isCorrect) quizMeta.correct++;
+            saveQuizMeta();
+
+            quizSession.answered++;
+            if (isCorrect) quizSession.correct++;
+
+            if (!isCorrect) {
+                quizSession.queue.push({ num: entry.num, fields: imageMode ? ['image'] : [entry.fields[quizSession.fieldIdx]] });
+            }
+
+            showQuizFeedback(isCorrect, correctValue, given);
+            updateQuizStats();
+        }
+
+        function showQuizFeedback(isCorrect, correctValue, given) {
+            const feedback = document.getElementById('quizFeedback');
+            if (!feedback) return;
+
+            feedback.innerHTML = isCorrect
+                ? `<div class="text-emerald-600 font-semibold flex items-center justify-center gap-2">${DUP_ICONS.check} Correct</div>`
+                : `<div class="text-rose-600 font-semibold">Not quite</div>
+                   <div class="text-sm text-slate-500 mt-1">Correct answer: <b class="text-slate-800">${escapeHTML(correctValue)}</b></div>`;
+
+            const entry = quizSession ? quizSession.queue[quizSession.pos] : null;
+            const imageMode = quizSession && quizSession.style === 'image';
+
+            document.querySelectorAll('.quiz-option').forEach(btn => {
+                const value = btn.getAttribute('data-value');
+                btn.disabled = true;
+                if (imageMode) {
+                    if (value === entry.num) btn.classList.add('border-emerald-400', 'bg-emerald-50');
+                    else if (!isCorrect && value === given) btn.classList.add('border-rose-400', 'bg-rose-50');
+                } else {
+                    const correctForField = quizItemByNum(entry.fields[quizSession.fieldIdx], entry.num);
+                    if (normalizeQuiz(value) === normalizeQuiz(correctForField)) {
+                        btn.classList.add('border-emerald-400', 'bg-emerald-50');
+                    } else if (!isCorrect && normalizeQuiz(value) === normalizeQuiz(given)) {
+                        btn.classList.add('border-rose-400', 'bg-rose-50');
+                    }
+                }
+            });
+
+            const nextBtn = document.getElementById('quizNextBtn');
+            if (nextBtn) {
+                nextBtn.classList.remove('hidden');
+                nextBtn.focus();
+            }
+        }
+
+        function nextQuizStep() {
+            if (!quizSession) return;
+            const entry = quizSession.queue[quizSession.pos];
+            if (!entry) return;
+
+            quizSession.fieldIdx++;
+            if (quizSession.fieldIdx >= entry.fields.length) {
+                quizSession.fieldIdx = 0;
+                quizSession.pos++;
+            }
+            renderQuiz();
+        }
+
+        function updateQuizStats() {
+            const counts = quizCounts();
+            document.getElementById('quizStatDue').textContent = counts.due;
+            document.getElementById('quizStatNew').textContent = counts.fresh;
+            document.getElementById('quizStatLearning').textContent = counts.learning;
+            document.getElementById('quizStatMature').textContent = counts.mature;
+            document.getElementById('quizStatAccuracy').textContent = quizMeta.answered
+                ? `${Math.round((quizMeta.correct / quizMeta.answered) * 100)}% (${quizMeta.correct}/${quizMeta.answered})`
+                : '–';
+            document.getElementById('quizStatProgress').textContent = quizSession
+                ? `${quizSession.answered} answered · ${Math.max(0, quizSession.queue.length - quizSession.pos)} left`
+                : '–';
+        }
+
+        function renderQuizSummary() {
+            const card = document.getElementById('quizCard');
+            const counts = quizCounts();
+            const total = quizSession ? quizSession.answered : 0;
+            const correct = quizSession ? quizSession.correct : 0;
+            const accuracy = total ? Math.round((correct / total) * 100) : 0;
+
+            card.innerHTML = `
+                <div class="max-w-xl mx-auto text-center py-4">
+                    <h3 class="text-xl font-bold text-slate-800">Session complete</h3>
+                    <p class="text-slate-500 text-sm mt-1">${total ? `You answered ${correct} of ${total} correctly (${accuracy}%).` : 'Nothing is due right now — come back later.'}</p>
+                    <div class="flex flex-wrap justify-center gap-x-5 gap-y-1 mt-5 text-xs font-medium">
+                        <span class="text-slate-500">Due now: <b class="text-amber-600">${counts.due}</b></span>
+                        <span class="text-slate-500">New: <b class="text-slate-700">${counts.fresh}</b></span>
+                        <span class="text-slate-500">Learning: <b class="text-rose-600">${counts.learning}</b></span>
+                        <span class="text-slate-500">Mature: <b class="text-emerald-600">${counts.mature}</b></span>
+                    </div>
+                    <button id="quizAgainBtn" class="mt-6 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">Practice again</button>
+                </div>`;
+            updateQuizStats();
+        }
+
+        function resetQuizProgress() {
+            if (!confirm('Reset all practice progress and spaced-repetition history?')) return;
+            quizProgress = {};
+            quizMeta = { answered: 0, correct: 0 };
+            localStorage.removeItem(QUIZ_KEY);
+            localStorage.removeItem(QUIZ_META_KEY);
+            startQuizSession();
+            showToast('Practice progress reset.');
+        }
+
+        // Helper to escape HTML attributes safely
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        // Attach listeners to input fields
+        function attachInputListeners() {
+            const inputs = document.querySelectorAll('.pao-input');
+            inputs.forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const catIdx = e.target.getAttribute('data-cat');
+                    const itemIdx = e.target.getAttribute('data-index');
+                    const field = e.target.getAttribute('data-field');
+                    const value = e.target.value;
+
+                    // Update in-memory state
+                    paoData[catIdx].items[itemIdx][field] = value;
+
+                    // Save to LocalStorage with debounce effect or direct save
+                    saveToLocalStorage();
+
+                    // Re-check duplicates and file drift as the user types
+                    updateDuplicateUI();
+                    updateDriftUI();
+
+                    // Keep any converted pictures in sync with renames
+                    renderDigits(document.getElementById('digitInput').value.replace(/\D+/g, ''));
+                });
+            });
+        }
+
+        // Save state to local storage with visual feedback
+        let saveTimeout;
+        function saveToLocalStorage() {
+            localStorage.setItem('pao_memory_data', JSON.stringify(paoData));
+            
+            const indicator = document.getElementById('savedIndicator');
+            indicator.innerHTML = `
+                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                Saving...
+            `;
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                indicator.innerHTML = `
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                    Saved to LocalStorage
+                `;
+            }, 500);
+        }
+
+        // Toast notification helper
+        function showToast(message) {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'bg-slate-800 text-white text-xs px-4 py-2.5 rounded-lg shadow-lg pointer-events-auto transition transform translate-y-2 opacity-0 flex items-center gap-2';
+            toast.innerHTML = `<svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg> ${message}`;
+            toastContainer.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        // Event Listeners for global actions
+        document.getElementById('globalSearch').addEventListener('input', (e) => {
+            renderPAOApp(e.target.value.trim());
+        });
+
+        document.getElementById('digitInput').addEventListener('input', (e) => {
+            const digits = e.target.value.replace(/\D+/g, '');
+            if (digits !== e.target.value) e.target.value = digits;
+            renderDigits(digits);
+        });
+
+        // Drift modal: open from the indicator, close via button / backdrop / Escape
+        document.getElementById('driftIndicator').addEventListener('click', openDriftModal);
+        document.getElementById('driftIndicator').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDriftModal(); }
+        });
+        document.getElementById('driftModalClose').addEventListener('click', closeDriftModal);
+        document.getElementById('driftModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeDriftModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeDriftModal();
+        });
+
+        // Any clickable "jump to number" chip (duplicate banner or modal)
+        document.addEventListener('click', (e) => {
+            const chip = e.target.closest('.pao-jump');
+            if (!chip) return;
+            closeDriftModal();
+            jumpToNumber(chip.getAttribute('data-num'));
+        });
+
+        // Practice mode controls
+        document.getElementById('practiceBtn').addEventListener('click', () => {
+            const isHidden = document.getElementById('practiceView').classList.contains('hidden');
+            setPracticeMode(isHidden);
+        });
+        document.getElementById('quizExitBtn').addEventListener('click', () => setPracticeMode(false));
+        document.getElementById('quizRestartBtn').addEventListener('click', startQuizSession);
+        document.getElementById('quizResetProgressBtn').addEventListener('click', resetQuizProgress);
+
+        function refreshQuizControls() {
+            const style = currentQuizStyle();
+            const scope = currentQuizScope();
+            document.getElementById('quizAnswerModeWrap').classList.toggle('hidden', style === 'image');
+            document.getElementById('quizPoolWrap').classList.toggle('hidden', scope !== 'selected');
+        }
+
+        document.getElementById('quizStyle').addEventListener('change', () => {
+            refreshQuizControls();
+            startQuizSession();
+        });
+        document.getElementById('quizScope').addEventListener('change', () => {
+            refreshQuizControls();
+            startQuizSession();
+        });
+        document.getElementById('quizPoolInput').addEventListener('change', () => {
+            if (currentQuizScope() === 'selected') startQuizSession();
+        });
+        document.getElementById('quizSessionSize').addEventListener('change', startQuizSession);
+
+        document.getElementById('quizCard').addEventListener('click', (e) => {
+            const option = e.target.closest('.quiz-option');
+            if (option && !option.disabled) { submitQuizAnswer(option.getAttribute('data-value')); return; }
+            if (e.target.closest('#quizCheckBtn')) {
+                const input = document.getElementById('quizTypeInput');
+                if (input) submitQuizAnswer(input.value);
+                return;
+            }
+            if (e.target.closest('#quizNextBtn')) { nextQuizStep(); return; }
+            if (e.target.closest('#quizAgainBtn')) { startQuizSession(); return; }
+        });
+
+        // Practice keyboard shortcuts: 1-4 pick an option, Enter advances, Esc exits
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('practiceView').classList.contains('hidden')) return;
+
+            const target = e.target;
+            const isTyping = target && (
+                target.tagName === 'INPUT' ||
+                target.tagName === 'TEXTAREA' ||
+                target.isContentEditable
+            );
+
+            if (e.key === 'Escape') { setPracticeMode(false); return; }
+
+            if (quizSession && quizSession.locked && e.key === 'Enter' && !isTyping) {
+                const next = document.getElementById('quizNextBtn');
+                if (next && !next.classList.contains('hidden')) { e.preventDefault(); nextQuizStep(); }
+                return;
+            }
+
+            if (/^[1-4]$/.test(e.key) && !isTyping) {
+                const options = document.querySelectorAll('.quiz-option:not(:disabled)');
+                const picked = options[parseInt(e.key, 10) - 1];
+                if (picked) { e.preventDefault(); submitQuizAnswer(picked.getAttribute('data-value')); }
+            }
+        });
+
+        document.getElementById('expandAllBtn').addEventListener('click', () => {
+            document.querySelectorAll('.accordion-body').forEach(el => el.classList.remove('hidden'));
+            document.querySelectorAll('.chevron-icon').forEach(el => el.classList.add('rotate-180'));
+        });
+
+        document.getElementById('collapseAllBtn').addEventListener('click', () => {
+            document.querySelectorAll('.accordion-body').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.chevron-icon').forEach(el => el.classList.remove('rotate-180'));
+        });
+
+        document.getElementById('resetDataBtn').addEventListener('click', () => {
+            if (confirm('Are you sure you want to reset all customizations back to default defaults?')) {
+                localStorage.removeItem('pao_memory_data');
+                paoData = JSON.parse(JSON.stringify(defaultPAOData));
+                renderPAOApp();
+                showToast('Reset all items to default values.');
+            }
+        });
+
+        // Initial Render on Window Load
+        window.onload = function() {
+            renderPAOApp();
+            refreshQuizControls();
+        };
+    </script>
+</body>
+</html>
