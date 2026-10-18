@@ -114,10 +114,10 @@
   {
     "num": "14",
     "category": "Set 2: Friends or Colleagues (10-19)",
-    "person": "Kayla Hewitt",
+    "person": "Henry Curtis (or Kayla or Tony lol)",
     "action": "Stapling",
     "object": "Stapler",
-    "prompt": "Kayla Hewitt stapling stapler. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
+    "prompt": "Henry Curtis (or Kayla or Tony lol) stapling stapler. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
   },
   {
     "num": "15",
@@ -163,33 +163,33 @@
     "num": "20",
     "category": "Set 3: Professional Athletes (20-29)",
     "person": "LeBron James",
-    "action": "Slam Dunking",
+    "action": "Shooting",
     "object": "Basketball",
-    "prompt": "LeBron James slam dunking basketball. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
+    "prompt": "LeBron James shooting basketball. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
   },
   {
     "num": "21",
     "category": "Set 3: Professional Athletes (20-29)",
-    "person": "Mew2King",
-    "action": "Wavedashing",
-    "object": "GameCube Controller",
-    "prompt": "Mew2King wavedashing gamecube controller. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
+    "person": "Michael Jordan",
+    "action": "Hanging",
+    "object": "Basketball Hoop",
+    "prompt": "Michael Jordan hanging basketball hoop. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
   },
   {
     "num": "22",
     "category": "Set 3: Professional Athletes (20-29)",
-    "person": "Cristiano Ronaldo",
+    "person": "Ronaldo",
     "action": "Kicking",
     "object": "Soccer Ball",
-    "prompt": "Cristiano Ronaldo kicking soccer ball. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
+    "prompt": "Ronaldo kicking soccer ball. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
   },
   {
     "num": "23",
     "category": "Set 3: Professional Athletes (20-29)",
-    "person": "Lionel Messi",
+    "person": "Messi",
     "action": "Dribbling",
     "object": "Soccer Cleat",
-    "prompt": "Lionel Messi dribbling soccer cleat. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
+    "prompt": "Messi dribbling soccer cleat. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
   },
   {
     "num": "24",
@@ -202,42 +202,42 @@
   {
     "num": "25",
     "category": "Set 3: Professional Athletes (20-29)",
+    "person": "Mew2King",
+    "action": "Wavedashing",
+    "object": "GameCube Controller",
+    "prompt": "Mew2King wavedashing gamecube controller. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
+  },
+  {
+    "num": "26",
+    "category": "Set 3: Professional Athletes (20-29)",
     "person": "Mang0",
     "action": "Dash Dancing",
     "object": "CRT Monitor",
     "prompt": "Mang0 dash dancing crt monitor. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
   },
   {
-    "num": "26",
-    "category": "Set 3: Professional Athletes (20-29)",
-    "person": "Michael Jordan",
-    "action": "Rim Hanging",
-    "object": "Basketball Hoop",
-    "prompt": "Michael Jordan rim hanging basketball hoop. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
-  },
-  {
     "num": "27",
     "category": "Set 3: Professional Athletes (20-29)",
-    "person": "Usain Bolt",
-    "action": "Sprinting",
-    "object": "Running Spikes",
-    "prompt": "Usain Bolt sprinting running spikes. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
+    "person": "Armada",
+    "action": "Sniping",
+    "object": "Stitchface Turnip",
+    "prompt": "Armada sniping stitchface turnip. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
   },
   {
     "num": "28",
     "category": "Set 3: Professional Athletes (20-29)",
-    "person": "Tiger Woods",
-    "action": "Putting",
-    "object": "Golf Club",
-    "prompt": "Tiger Woods putting golf club. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
+    "person": "Alexandra Botez",
+    "action": "Blundering",
+    "object": "Queen",
+    "prompt": "Alexandra Botez blundering queen. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
   },
   {
     "num": "29",
     "category": "Set 3: Professional Athletes (20-29)",
-    "person": "Magnus Carlsen",
-    "action": "Blitzing",
-    "object": "Chess Clock",
-    "prompt": "Magnus Carlsen blitzing chess clock. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
+    "person": "Levy Rozman",
+    "action": "Sacrificing",
+    "object": "Rook",
+    "prompt": "Levy Rozman sacrificing rook. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
   },
   {
     "num": "30",
@@ -252,8 +252,8 @@
     "category": "Set 4: Iconic Movie Stars (30-39)",
     "person": "Marilyn Monroe",
     "action": "Baking",
-    "object": "Chocolate Cake",
-    "prompt": "Marilyn Monroe baking chocolate cake. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
+    "object": "Cake",
+    "prompt": "Marilyn Monroe baking cake. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
   },
   {
     "num": "32",
@@ -284,24 +284,24 @@
     "category": "Set 4: Iconic Movie Stars (30-39)",
     "person": "Scarlett Johansson",
     "action": "Boiling",
-    "object": "Spaghetti",
-    "prompt": "Scarlett Johansson boiling spaghetti. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
+    "object": "Hot Dogs",
+    "prompt": "Scarlett Johansson boiling hot dogs. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
   },
   {
     "num": "36",
     "category": "Set 4: Iconic Movie Stars (30-39)",
     "person": "Will Smith",
-    "action": "Roasting",
-    "object": "Chicken",
-    "prompt": "Will Smith roasting chicken. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
+    "action": "Eating",
+    "object": "Spaghetti",
+    "prompt": "Will Smith eating spaghetti. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
   },
   {
     "num": "37",
     "category": "Set 4: Iconic Movie Stars (30-39)",
     "person": "Jennifer Lawrence",
-    "action": "Eating",
+    "action": "Peeling",
     "object": "Banana",
-    "prompt": "Jennifer Lawrence eating banana. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
+    "prompt": "Jennifer Lawrence peeling banana. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
   },
   {
     "num": "38",
@@ -443,9 +443,9 @@
     "num": "55",
     "category": "Set 6: Superheroes (50-59)",
     "person": "Thor",
-    "action": "Draping",
-    "object": "Red Cloak",
-    "prompt": "Thor draping red cloak. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
+    "action": "Summoning",
+    "object": "Hammer",
+    "prompt": "Thor summoning hammer. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
   },
   {
     "num": "56",
@@ -555,9 +555,9 @@
     "num": "69",
     "category": "Set 7: Cartoon Characters (60-69)",
     "person": "Bender",
-    "action": "Hovering",
+    "action": "69ing",
     "object": "Hovercar",
-    "prompt": "Bender hovering hovercar. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
+    "prompt": "Bender 69ing hovercar. A vivid, memorable picture for a memory-training (PAO) flashcard. Style: flat 2D cartoon illustration, bold clean outlines, bright saturated colors, simple minimal background, centered single subject, high contrast, mnemonic flashcard style. No text, letters, numbers or watermark anywhere in the image."
   },
   {
     "num": "70",

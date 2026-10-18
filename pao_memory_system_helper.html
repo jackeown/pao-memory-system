@@ -36,6 +36,20 @@
             0%, 100% { background-color: transparent; }
             15% { background-color: #fef9c3; }
         }
+
+        /* Row reordering (drag within a category) */
+        .pao-row.dragging { opacity: 0.35; }
+        .pao-row.drag-over-top { box-shadow: inset 0 2px 0 0 #6366f1; }
+        .pao-row.drag-over-bottom { box-shadow: inset 0 -2px 0 0 #6366f1; }
+        .drag-handle {
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+            border-radius: 4px;
+            outline: none;
+        }
+        .drag-handle:active { cursor: grabbing; }
+        .drag-handle:focus-visible { box-shadow: 0 0 0 2px #6366f1; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -79,6 +93,7 @@
                             <select id="quizStyle" class="ml-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300">
                                 <option value="parts" selected>Parts</option>
                                 <option value="image">Whole image</option>
+                                <option value="fromimage">Number from image</option>
                             </select>
                         </label>
                         <label id="quizAnswerModeWrap" class="text-xs text-slate-500 font-medium">Answer mode
@@ -231,7 +246,7 @@
                     { num: '11', person: 'Mark Switajski', action: 'Painting', object: 'Paintbrush' },
                     { num: '12', person: 'Ben Bowman', action: 'Writing', object: 'Ballpoint Pen' },
                     { num: '13', person: 'Kevin Sorensen', action: 'Drawing', object: 'Marker' },
-                    { num: '14', person: 'Kayla Hewitt', action: 'Stapling', object: 'Stapler' },
+                    { num: '14', person: 'Henry Curtis (or Kayla or Tony lol)', action: 'Stapling', object: 'Stapler' },
                     { num: '15', person: 'Geoff Sutcliffe', action: 'Cutting', object: 'Scissors' },
                     { num: '16', person: 'Laura Kovacs', action: 'Gluing', object: 'Glue Stick' },
                     { num: '17', person: 'Matthias', action: 'Highlighting', object: 'Highlighter' },
@@ -246,16 +261,16 @@
                 subtitle: 'Sports Movements with Sporting Equipment',
                 range: [20, 29],
                 items: [
-                    { num: '20', person: 'LeBron James', action: 'Slam Dunking', object: 'Basketball' },
-                    { num: '21', person: 'Mew2King', action: 'Wavedashing', object: 'GameCube Controller' },
-                    { num: '22', person: 'Cristiano Ronaldo', action: 'Kicking', object: 'Soccer Ball' },
-                    { num: '23', person: 'Lionel Messi', action: 'Dribbling', object: 'Soccer Cleat' },
+                    { num: '20', person: 'LeBron James', action: 'Shooting', object: 'Basketball' },
+                    { num: '21', person: 'Michael Jordan', action: 'Hanging', object: 'Basketball Hoop' },
+                    { num: '22', person: 'Ronaldo', action: 'Kicking', object: 'Soccer Ball' },
+                    { num: '23', person: 'Messi', action: 'Dribbling', object: 'Soccer Cleat' },
                     { num: '24', person: 'Tom Brady', action: 'Throwing', object: 'Football' },
-                    { num: '25', person: 'Mang0', action: 'Dash Dancing', object: 'CRT Monitor' },
-                    { num: '26', person: 'Michael Jordan', action: 'Rim Hanging', object: 'Basketball Hoop' },
-                    { num: '27', person: 'Usain Bolt', action: 'Sprinting', object: 'Running Spikes' },
-                    { num: '28', person: 'Tiger Woods', action: 'Putting', object: 'Golf Club' },
-                    { num: '29', person: 'Magnus Carlsen', action: 'Blitzing', object: 'Chess Clock' }
+                    { num: '25', person: 'Mew2King', action: 'Wavedashing', object: 'GameCube Controller' },
+                    { num: '26', person: 'Mang0', action: 'Dash Dancing', object: 'CRT Monitor' },
+                    { num: '27', person: 'Armada', action: 'Sniping', object: 'Stitchface Turnip' },
+                    { num: '28', person: 'Alexandra Botez', action: 'Blundering', object: 'Queen' },
+                    { num: '29', person: 'Levy Rozman', action: 'Sacrificing', object: 'Rook' }
                 ]
             },
             {
@@ -266,13 +281,13 @@
                 range: [30, 39],
                 items: [
                     { num: '30', person: 'Tom Hanks', action: 'Grilling', object: 'Steak' },
-                    { num: '31', person: 'Marilyn Monroe', action: 'Baking', object: 'Chocolate Cake' },
+                    { num: '31', person: 'Marilyn Monroe', action: 'Baking', object: 'Cake' },
                     { num: '32', person: 'Brad Pitt', action: 'Chopping', object: 'Carrot' },
                     { num: '33', person: 'Angelina Jolie', action: 'Blending', object: 'Smoothie' },
                     { num: '34', person: 'Leonardo DiCaprio', action: 'Frying', object: 'Pancake' },
-                    { num: '35', person: 'Scarlett Johansson', action: 'Boiling', object: 'Spaghetti' },
-                    { num: '36', person: 'Will Smith', action: 'Roasting', object: 'Chicken' },
-                    { num: '37', person: 'Jennifer Lawrence', action: 'Eating', object: 'Banana' },
+                    { num: '35', person: 'Scarlett Johansson', action: 'Boiling', object: 'Hot Dogs' },
+                    { num: '36', person: 'Will Smith', action: 'Eating', object: 'Spaghetti' },
+                    { num: '37', person: 'Jennifer Lawrence', action: 'Peeling', object: 'Banana' },
                     { num: '38', person: 'Keanu Reeves', action: 'Slicing', object: 'Watermelon' },
                     { num: '39', person: 'Anne Hathaway', action: 'Toasting', object: 'Bread' }
                 ]
@@ -308,7 +323,7 @@
                     { num: '52', person: 'Spider-Man', action: 'Yanking Over', object: 'Mask' },
                     { num: '53', person: 'Wonder Woman', action: 'Clasping', object: 'Tiara' },
                     { num: '54', person: 'Iron Man', action: 'Sealing', object: 'Helmet' },
-                    { num: '55', person: 'Thor', action: 'Draping', object: 'Red Cloak' },
+                    { num: '55', person: 'Thor', action: 'Summoning', object: 'Hammer' },
                     { num: '56', person: 'Captain America', action: 'Buckling', object: 'Shield Emblem' },
                     { num: '57', person: 'Hulk', action: 'Shredding', object: 'Purple Shorts' },
                     { num: '58', person: 'Black Panther', action: 'Hooking', object: 'Necklace' },
@@ -331,7 +346,7 @@
                     { num: '66', person: 'Pikachu', action: 'Zooming', object: 'Lightning McQueen Car' },
                     { num: '67', person: 'Mario', action: 'Racing', object: 'Go-Kart' },
                     { num: '68', person: 'Luigi', action: 'Flying', object: 'TIE Fighter' },
-                    { num: '69', person: 'Bender', action: 'Hovering', object: 'Hovercar' }
+                    { num: '69', person: 'Bender', action: '69ing', object: 'Hovercar' }
                 ]
             },
             {
@@ -412,6 +427,10 @@
         // (deep copy so edits can never mutate the hardcoded defaultPAOData)
         let paoData = JSON.parse(localStorage.getItem('pao_memory_data')) || JSON.parse(JSON.stringify(defaultPAOData));
 
+        // Remembers which sections are expanded, so a re-render (e.g. after reordering)
+        // doesn't collapse the section you're working in. Keyed by category id.
+        const accordionState = {};
+
         // Render Application
         function renderPAOApp(filterText = '') {
             const container = document.getElementById('categoriesContainer');
@@ -458,8 +477,9 @@
 
                 // Accordion Content Body
                 const body = document.createElement('div');
-                // Keep open if filter is active, otherwise default to closed or open first
-                const isOpen = filterText.length > 0 || catIndex === 0; 
+                // Keep open if filtering; otherwise restore the remembered state (first set open by default)
+                const remembered = accordionState[category.id];
+                const isOpen = filterText.length > 0 || (remembered !== undefined ? remembered : catIndex === 0);
                 body.className = `accordion-body border-t border-slate-200 p-4 sm:p-6 bg-white ${isOpen ? '' : 'hidden'}`;
                 if (isOpen) {
                     header.querySelector('.chevron-icon').classList.add('rotate-180');
@@ -473,20 +493,24 @@
                     <table class="w-full text-left border-collapse text-sm">
                         <thead>
                             <tr class="border-b border-slate-200 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                <th class="py-2.5 px-1 w-8"></th>
                                 <th class="py-2.5 px-3 w-16">No.</th>
                                 <th class="py-2.5 px-3">Person</th>
                                 <th class="py-2.5 px-3">Action</th>
                                 <th class="py-2.5 px-3">Object</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100">
+                        <tbody class="divide-y divide-slate-100 reorder-body" data-cat="${catIndex}">
                 `;
 
                 filteredItems.forEach(item => {
                     // Find actual index in original category array for updating
                     const originalIndex = category.items.findIndex(i => i.num === item.num);
                     tableHTML += `
-                        <tr class="hover:bg-slate-50/80 transition group">
+                        <tr class="pao-row hover:bg-slate-50/80 transition group" data-cat="${catIndex}" data-num="${item.num}">
+                            <td class="py-3 px-1 align-middle">
+                                <span class="drag-handle inline-flex items-center justify-center w-6 h-6 text-slate-300 hover:text-indigo-500" tabindex="0" role="button" title="Drag to reorder (or focus and press Arrow Up/Down)" aria-label="Reorder row ${item.num}">&#10303;</span>
+                            </td>
                             <td class="py-3 px-3 font-mono font-bold text-indigo-600 bg-indigo-50/40 rounded-l-lg">${item.num}</td>
                             <td class="py-3 px-3">
                                 <input type="text" value="${escapeHTML(item.person)}" 
@@ -514,7 +538,9 @@
                 // Toggle functionality
                 header.addEventListener('click', () => {
                     body.classList.toggle('hidden');
-                    header.querySelector('.chevron-icon').classList.toggle('rotate-180');
+                    const open = !body.classList.contains('hidden');
+                    accordionState[category.id] = open;
+                    header.querySelector('.chevron-icon').classList.toggle('rotate-180', open);
                 });
 
                 card.appendChild(header);
@@ -527,11 +553,161 @@
             // Attach input event listeners for live saving
             attachInputListeners();
 
+            // Allow drag-and-drop (or keyboard) reordering within each category
+            attachReorderListeners();
+
             // Flag any repeated values in the freshly rendered rows
             updateDuplicateUI();
 
             // Show how far the saved data is from the file's hardcoded defaults
             updateDriftUI();
+        }
+
+        // --- Reordering within a category ---------------------------------------
+        // The number IS the position inside a category, so reordering renumbers the
+        // entries (always range[0] .. range[end]) to match their new order.
+        function categoryBaseNum(category) {
+            if (Array.isArray(category.range) && category.range.length) return category.range[0];
+            return Math.min.apply(null, category.items.map(it => parseInt(it.num, 10)));
+        }
+
+        function renumberCategory(catIndex) {
+            const base = categoryBaseNum(paoData[catIndex]);
+            paoData[catIndex].items.forEach((item, i) => {
+                item.num = String(base + i).padStart(2, '0');
+            });
+        }
+
+        // Move the item at fromIndex so it lands at toIndex (before it when `before` is true).
+        // Returns the moved item's new index, or -1 on failure.
+        function moveItemWithinCategory(catIndex, fromIndex, toIndex, before) {
+            const items = paoData[catIndex].items;
+            if (fromIndex < 0 || fromIndex >= items.length) return -1;
+            if (toIndex < 0 || toIndex >= items.length) return -1;
+            const [moved] = items.splice(fromIndex, 1);
+            let insertAt = toIndex < fromIndex ? toIndex : toIndex - 1;
+            insertAt = before ? insertAt : insertAt + 1;
+            insertAt = Math.max(0, Math.min(items.length, insertAt));
+            items.splice(insertAt, 0, moved);
+            renumberCategory(catIndex);
+            return insertAt;
+        }
+
+        // Move by one slot, e.g. direction -1 (up) or +1 (down)
+        function nudgeItem(catIndex, index, direction) {
+            const target = index + direction;
+            if (target < 0 || target >= paoData[catIndex].items.length) return false;
+            const moved = paoData[catIndex].items[index];
+            paoData[catIndex].items.splice(index, 1);
+            paoData[catIndex].items.splice(target, 0, moved);
+            renumberCategory(catIndex);
+            return true;
+        }
+
+        function attachReorderListeners() {
+            const filterActive = document.getElementById('globalSearch').value.trim().length > 0;
+
+            document.querySelectorAll('.reorder-body').forEach(tbody => {
+                const catIndex = parseInt(tbody.getAttribute('data-cat'), 10);
+                let dragRow = null;
+
+                const clearMarks = () => {
+                    tbody.querySelectorAll('.pao-row').forEach(r =>
+                        r.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom'));
+                };
+
+                tbody.querySelectorAll('.drag-handle').forEach(handle => {
+                    const row = handle.closest('.pao-row');
+
+                    // Only make the row draggable while the handle is pressed, so that
+                    // text inside the inputs stays selectable.
+                    handle.addEventListener('mousedown', () => { if (!filterActive) row.draggable = true; });
+                    handle.addEventListener('mouseup', () => { row.draggable = false; });
+
+                    // Keyboard access: focus the handle, press Arrow Up/Down to move.
+                    handle.addEventListener('keydown', (e) => {
+                        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+                        e.preventDefault();
+                        if (filterActive) { showToast('Clear the search box to reorder.'); return; }
+                        const dir = e.key === 'ArrowUp' ? -1 : 1;
+                        const fromIdx = paoData[catIndex].items.findIndex(x => x.num === row.getAttribute('data-num'));
+                        if (!nudgeItem(catIndex, fromIdx, dir)) return;
+                        saveToLocalStorage();
+                        renderPAOApp();
+                        focusReorderHandle(catIndex, fromIdx + dir);
+                    });
+                });
+
+                tbody.addEventListener('dragstart', (e) => {
+                    const row = e.target.closest('.pao-row');
+                    if (!row) return;
+                    dragRow = row;
+                    row.classList.add('dragging');
+                    if (e.dataTransfer) {
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', row.getAttribute('data-num'));
+                    }
+                });
+
+                tbody.addEventListener('dragend', () => {
+                    if (dragRow) dragRow.draggable = false;
+                    clearMarks();
+                    dragRow = null;
+                });
+
+                tbody.addEventListener('dragover', (e) => {
+                    if (!dragRow) return;
+                    const row = e.target.closest('.pao-row');
+                    if (!row || row === dragRow || row.getAttribute('data-cat') !== String(catIndex)) return;
+                    e.preventDefault();
+                    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+                    const rect = row.getBoundingClientRect();
+                    const before = (e.clientY - rect.top) < rect.height / 2;
+                    tbody.querySelectorAll('.pao-row').forEach(r =>
+                        r.classList.remove('drag-over-top', 'drag-over-bottom'));
+                    row.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
+                });
+
+                tbody.addEventListener('drop', (e) => {
+                    if (!dragRow) return;
+                    const row = e.target.closest('.pao-row');
+                    if (!row || row === dragRow || row.getAttribute('data-cat') !== String(catIndex)) return;
+                    e.preventDefault();
+                    const rect = row.getBoundingClientRect();
+                    const before = (e.clientY - rect.top) < rect.height / 2;
+                    const fromNum = dragRow.getAttribute('data-num');
+                    const toNum = row.getAttribute('data-num');
+                    const cat = paoData[catIndex];
+                    const fromIdx = cat.items.findIndex(x => x.num === fromNum);
+                    const toIdx = cat.items.findIndex(x => x.num === toNum);
+                    const newIdx = moveItemWithinCategory(catIndex, fromIdx, toIdx, before);
+                    if (newIdx >= 0) {
+                        saveToLocalStorage();
+                        renderPAOApp();
+                        showToast('Reordered ' + cat.title.replace(/^Set \d+: /, ''));
+                        focusReorderHandle(catIndex, newIdx);
+                    }
+                    clearMarks();
+                    dragRow = null;
+                });
+            });
+        }
+
+        function focusReorderHandle(catIndex, index) {
+            const cat = paoData[catIndex];
+            if (!cat || !cat.items[index]) return;
+            const num = cat.items[index].num;
+            const handle = document.querySelector(
+                `.reorder-body[data-cat="${catIndex}"] .pao-row[data-num="${num}"] .drag-handle`);
+            if (handle) {
+                handle.focus();
+                const row = handle.closest('.pao-row');
+                if (row) {
+                    row.classList.remove('pao-flash');
+                    void row.offsetWidth;
+                    row.classList.add('pao-flash');
+                }
+            }
         }
 
         // --- Duplicate detection -------------------------------------------------
@@ -781,6 +957,7 @@
             if (body.classList.contains('hidden')) {
                 body.classList.remove('hidden');
                 chevron.classList.add('rotate-180');
+                accordionState[paoData[catIdx].id] = true;
             }
 
             const input = card.querySelector(`.pao-input[data-cat="${catIdx}"][data-index="${itemIdx}"]`);
@@ -969,6 +1146,43 @@
             return shuffle(options);
         }
 
+        // Render one PAO image into `container`. Tries .png/.jpg/.jpeg/.webp, then falls back
+        // to a text placeholder so practice works before any images have been generated.
+        function renderQuizImage(container, num) {
+            const exts = ['png', 'jpg', 'jpeg', 'webp'];
+            let extIdx = 0;
+
+            const placeholder = document.createElement('div');
+            placeholder.className = 'mx-auto rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 max-w-md w-full';
+            placeholder.innerHTML = `
+                <div class="text-3xl mb-2">🖼️</div>
+                <div class="text-slate-600 text-sm font-medium leading-relaxed">${quizImageSpan(num)}</div>
+                <div class="text-[10px] text-slate-400 mt-2 font-mono">image ${escapeHTML(num)} not found — using text</div>`;
+
+            const img = document.createElement('img');
+            img.alt = '';
+            img.className = 'mx-auto rounded-xl border border-slate-200 bg-slate-50 max-h-80 object-contain';
+            img.onerror = () => {
+                extIdx++;
+                if (extIdx < exts.length) {
+                    img.src = 'images/' + num + '.' + exts[extIdx];
+                } else {
+                    img.remove();
+                    container.appendChild(placeholder);
+                }
+            };
+            img.src = 'images/' + num + '.' + exts[0];
+            container.appendChild(img);
+        }
+
+        // Normalizes a typed number ("5", "05", " 7 ") to a 2-digit string, or '' if unusable
+        function normalizeQuizNum(value) {
+            const digits = (value || '').replace(/\D+/g, '');
+            if (!digits) return '';
+            const n = parseInt(digits, 10);
+            return (n >= 0 && n <= 99) ? String(n).padStart(2, '0') : '';
+        }
+
         function quizCounts() {
             const now = Date.now();
             const counts = { due: 0, fresh: 0, learning: 0, mature: 0 };
@@ -1029,7 +1243,8 @@
             }
         }
 
-        // Question style: 'parts' (person/action/object separately) or 'image' (whole triple)
+        // Question style: 'parts' (person/action/object separately), 'image' (pick the image for a
+        // number) or 'fromimage' (see the image, type the number)
         function currentQuizStyle() {
             const el = document.getElementById('quizStyle');
             return el ? el.value : 'parts';
@@ -1075,7 +1290,7 @@
             shuffle(dueNums);
             shuffle(newNums);
             const nums = dueNums.concat(newNums).slice(0, size);
-            const fields = style === 'image' ? ['image'] : DUP_FIELDS.slice();
+            const fields = (style === 'image' || style === 'fromimage') ? ['image'] : DUP_FIELDS.slice();
 
             quizSession = {
                 style,
@@ -1100,21 +1315,31 @@
             }
 
             const entry = quizSession.queue[quizSession.pos];
-            const imageMode = quizSession.style === 'image';
+            const wholeImageMode = quizSession.style === 'image';
+            const fromImageMode = quizSession.style === 'fromimage';
+            const imageMode = wholeImageMode || fromImageMode;
             const field = imageMode ? 'image' : entry.fields[quizSession.fieldIdx];
             const correct = imageMode ? quizImageText(entry.num) : quizItemByNum(field, entry.num);
             const state = quizStateFor(entry.num, imageMode ? 'person' : field);
             const mode = imageMode ? 'mc' : quizModeFor(state);
-            const fieldLabel = imageMode ? 'Whole image' : QUIZ_FIELD_LABELS[field];
-            const prompt = imageMode ? 'Which image belongs to this number?' : `What is the <b>${fieldLabel}</b>?`;
+            const fieldLabel = wholeImageMode ? 'Whole image'
+                             : fromImageMode ? 'Number from image'
+                             : QUIZ_FIELD_LABELS[field];
+            const prompt = wholeImageMode ? 'Which image belongs to this number?'
+                         : fromImageMode ? 'What number is this image?'
+                         : `What is the <b>${fieldLabel}</b>?`;
 
             quizSession.locked = false;
             updateQuizStats();
 
+            // The number IS the question in "number from image" mode — never show it up front
+            const bigNumberHTML = fromImageMode ? ''
+                : `<div class="font-mono text-6xl font-bold text-indigo-600 my-5">${escapeHTML(entry.num)}</div>`;
+
             card.innerHTML = `
                 <div class="max-w-xl mx-auto text-center">
                     <p class="text-xs uppercase tracking-widest text-slate-400 font-semibold">Question ${quizSession.answered + 1} · ${fieldLabel}</p>
-                    <div class="font-mono text-6xl font-bold text-indigo-600 my-5">${escapeHTML(entry.num)}</div>
+                    ${bigNumberHTML}
                     <p class="text-slate-600 mb-6">${prompt}</p>
                     <div id="quizAnswerArea"></div>
                     <div id="quizFeedback" class="mt-5 min-h-[3.5rem]"></div>
@@ -1122,7 +1347,26 @@
                 </div>`;
 
             const area = document.getElementById('quizAnswerArea');
-            if (imageMode) {
+            if (fromImageMode) {
+                const wrap = document.createElement('div');
+                wrap.className = 'flex flex-col items-center gap-4';
+                renderQuizImage(wrap, entry.num);
+
+                const inputWrap = document.createElement('div');
+                inputWrap.className = 'flex gap-3 justify-center items-center';
+                inputWrap.innerHTML = `
+                    <input id="quizTypeInput" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="Type the number…"
+                        class="px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 text-sm text-center font-mono w-28 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400">
+                    <button id="quizCheckBtn" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">Check</button>`;
+                wrap.appendChild(inputWrap);
+                area.appendChild(wrap);
+
+                document.getElementById('quizTypeInput').focus();
+                document.getElementById('quizTypeInput').addEventListener('keydown', e => {
+                    if (e.key === 'Enter') submitQuizAnswer(document.getElementById('quizTypeInput').value);
+                });
+                // (the Check button is handled by the quizCard delegated click listener)
+            } else if (wholeImageMode) {
                 const grid = document.createElement('div');
                 grid.className = 'grid grid-cols-1 gap-3';
                 quizImageOptions(entry.num).forEach((option, idx) => {
@@ -1168,12 +1412,18 @@
             const entry = quizSession.queue[quizSession.pos];
             if (!entry) return;
 
-            const imageMode = quizSession.style === 'image';
+            const wholeImageMode = quizSession.style === 'image';
+            const fromImageMode = quizSession.style === 'fromimage';
+            const imageMode = wholeImageMode || fromImageMode;
             let isCorrect, correctValue;
 
-            if (imageMode) {
+            if (wholeImageMode) {
                 isCorrect = given === entry.num;
                 correctValue = quizImageText(entry.num);
+            } else if (fromImageMode) {
+                const givenNorm = normalizeQuizNum(given);
+                isCorrect = givenNorm !== '' && givenNorm === entry.num;
+                correctValue = entry.num;
             } else {
                 const field = entry.fields[quizSession.fieldIdx];
                 correctValue = quizItemByNum(field, entry.num);
@@ -1183,7 +1433,7 @@
 
             quizSession.locked = true;
 
-            // Image mode grades all three aspects together
+            // Image modes grade all three aspects together
             if (imageMode) {
                 DUP_FIELDS.forEach(field => gradeQuizItem(quizStateFor(entry.num, field), isCorrect));
             } else {
@@ -1233,6 +1483,16 @@
                     }
                 }
             });
+
+            // "Number from image" mode has a typed input instead of options
+            if (quizSession && quizSession.style === 'fromimage') {
+                const input = document.getElementById('quizTypeInput');
+                if (input) {
+                    input.disabled = true;
+                    input.classList.add(isCorrect ? 'border-emerald-400' : 'border-rose-400',
+                                        isCorrect ? 'bg-emerald-50' : 'bg-rose-50');
+                }
+            }
 
             const nextBtn = document.getElementById('quizNextBtn');
             if (nextBtn) {
@@ -1415,7 +1675,8 @@
         function refreshQuizControls() {
             const style = currentQuizStyle();
             const scope = currentQuizScope();
-            document.getElementById('quizAnswerModeWrap').classList.toggle('hidden', style === 'image');
+            // Answer mode (adaptive/auto-typed) only applies to the "Parts" question style
+            document.getElementById('quizAnswerModeWrap').classList.toggle('hidden', style !== 'parts');
             document.getElementById('quizPoolWrap').classList.toggle('hidden', scope !== 'selected');
         }
 
@@ -1473,11 +1734,13 @@
         document.getElementById('expandAllBtn').addEventListener('click', () => {
             document.querySelectorAll('.accordion-body').forEach(el => el.classList.remove('hidden'));
             document.querySelectorAll('.chevron-icon').forEach(el => el.classList.add('rotate-180'));
+            paoData.forEach(c => { accordionState[c.id] = true; });
         });
 
         document.getElementById('collapseAllBtn').addEventListener('click', () => {
             document.querySelectorAll('.accordion-body').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.chevron-icon').forEach(el => el.classList.remove('rotate-180'));
+            paoData.forEach(c => { accordionState[c.id] = false; });
         });
 
         document.getElementById('resetDataBtn').addEventListener('click', () => {
