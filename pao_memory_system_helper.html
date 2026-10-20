@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PAO Memory System Helper</title>
+    <!-- Apply the saved theme (default: follow the system) before first paint -->
+    <script>try{var _p=localStorage.getItem('pao_theme')||'system';var _d=_p==='dark'||(_p!=='light'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',_d);document.documentElement.setAttribute('data-theme',_d?'dark':'light');}catch(e){}</script>
+    <link rel="stylesheet" href="pao-dark.css">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inter Font -->
@@ -62,6 +65,9 @@
                 <p class="text-indigo-200 text-sm">Organize & memorize numbers 00–99 using Person-Action-Object categories</p>
             </div>
             <div class="flex items-center gap-3 w-full sm:w-auto">
+                <a href="pao_gallery.html" class="text-xs font-semibold text-indigo-100 hover:text-white underline underline-offset-2 whitespace-nowrap">Gallery</a>
+                <button id="themeBtn" type="button" title="Theme: system"
+                    class="bg-white/90 hover:bg-white text-slate-700 text-base leading-none px-2.5 py-2 rounded-lg transition shadow-sm" aria-label="Change colour theme">🖥️</button>
                 <input type="text" id="globalSearch" placeholder="Search number, person, action, object..." 
                     class="px-4 py-2 rounded-lg text-slate-800 bg-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 w-full sm:w-72 shadow-inner">
                 <button id="practiceBtn" class="bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-semibold px-4 py-2 rounded-lg transition whitespace-nowrap shadow-sm">
@@ -84,22 +90,16 @@
                     <div>
                         <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
                             Practice Mode
-                            <span class="text-xs font-normal text-slate-400">spaced repetition</span>
+                            <span class="text-xs font-normal text-slate-400">choose a mode</span>
                         </h2>
-                        <p class="text-xs text-slate-500 mt-0.5">Weak items come back as multiple choice; strong items become case-insensitive typed recall.</p>
+                        <p class="text-xs text-slate-500 mt-0.5">Pick a mode below or use the settings.</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
-                        <label class="text-xs text-slate-500 font-medium">Question
-                            <select id="quizStyle" class="ml-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300">
-                                <option value="parts" selected>Parts</option>
-                                <option value="image">Whole image</option>
-                                <option value="fromimage">Number from image</option>
-                            </select>
-                        </label>
-                        <label id="quizAnswerModeWrap" class="text-xs text-slate-500 font-medium">Answer mode
+                        <input type="hidden" id="quizTask" value="recall">
+                        <input type="hidden" id="quizStyle" value="parts">
+                        <label id="quizAnswerModeWrap" class="text-xs text-slate-500 font-medium">Answer type
                             <select id="quizAnswerMode" class="ml-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300">
-                                <option value="auto" selected>Auto (adaptive)</option>
-                                <option value="mc">Multiple choice</option>
+                                <option value="mc" selected>Multiple choice</option>
                                 <option value="typed">Typed</option>
                             </select>
                         </label>
@@ -110,8 +110,8 @@
                             </select>
                         </label>
                         <label id="quizPoolWrap" class="hidden text-xs text-slate-500 font-medium">Which
-                            <input id="quizPoolInput" type="text" autocomplete="off" placeholder="e.g. 5, 27, 84 (blank = all)"
-                                class="ml-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs w-44 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                            <input id="quizPoolInput" type="text" autocomplete="off" placeholder="e.g. 5, 10-15, 27, 84 (blank = all)"
+                                class="ml-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs w-52 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-300">
                         </label>
                         <label class="text-xs text-slate-500 font-medium">Cards
                             <select id="quizSessionSize" class="ml-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300">
@@ -127,13 +127,26 @@
                     </div>
                 </div>
 
-                <div class="flex flex-wrap gap-x-5 gap-y-1 mt-4 text-xs font-medium">
+                <div id="quizModeGrid" class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button type="button" class="quiz-mode-btn p-2 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-center transition" data-task="paoFromNum" data-style="parts">
+                        <div class="text-sm font-semibold text-slate-800">P/A/O → Number</div>
+                    </button>
+                    <button type="button" class="quiz-mode-btn p-2 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-center transition" data-task="recall" data-style="parts">
+                        <div class="text-sm font-semibold text-slate-800">Number → P/A/O</div>
+                    </button>
+                    <button type="button" class="quiz-mode-btn p-2 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-center transition" data-task="digitsToPao">
+                        <div class="text-sm font-semibold text-slate-800">6 digits → P+A+O</div>
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-x-5 gap-y-1 mt-4 text-xs font-medium">
                     <span class="text-slate-500">Due: <b id="quizStatDue" class="text-amber-600">–</b></span>
                     <span class="text-slate-500">New: <b id="quizStatNew" class="text-slate-700">–</b></span>
                     <span class="text-slate-500">Learning: <b id="quizStatLearning" class="text-rose-600">–</b></span>
                     <span class="text-slate-500">Mature: <b id="quizStatMature" class="text-emerald-600">–</b></span>
-                    <span class="text-slate-500">Accuracy: <b id="quizStatAccuracy" class="text-slate-700">–</b></span>
+                    <span class="text-slate-500">Accuracy (<span id="quizStatModeLabel">mode</span>): <b id="quizStatAccuracy" class="text-slate-700">–</b></span>
                     <span class="text-slate-500">This session: <b id="quizStatProgress" class="text-slate-700">–</b></span>
+                    <button id="quizStatsInfoBtn" type="button" class="text-slate-400 hover:text-slate-700" title="Explain stats">?</button>
                 </div>
             </div>
 
@@ -210,6 +223,26 @@
         </div>
     </div>
 
+    <!-- Quiz Stats Info Modal -->
+    <div id="quizStatsModal" class="pao-modal hidden fixed inset-0 z-50 items-center justify-center bg-slate-900/40 p-4" role="dialog" aria-modal="true">
+        <div class="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md">
+            <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-slate-200">
+                <div>
+                    <h2 class="text-base font-semibold text-slate-800">Practice stats explained</h2>
+                </div>
+                <button id="quizStatsModalClose" class="text-slate-400 hover:text-slate-700 text-2xl leading-none px-1 -mt-1" aria-label="Close">&times;</button>
+            </div>
+            <div class="px-5 py-4 text-sm text-slate-700 space-y-2">
+                <div><b>Due</b> – Items scheduled to review now.</div>
+                <div><b>New</b> – Items never practiced.</div>
+                <div><b>Learning</b> – Being learned (short intervals).</div>
+                <div><b>Mature</b> – Stable with longer intervals.</div>
+                <div><b>Accuracy (mode)</b> – Correct/total for the currently selected practice mode, saved separately per mode.</div>
+                <div><b>This session</b> – How many answered / left in this run.</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification Container -->
     <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
@@ -242,13 +275,13 @@
                 subtitle: 'Creative Arts with Stationery',
                 range: [10, 19],
                 items: [
-                    { num: '10', person: 'Matt Kindem', action: 'Sketching', object: 'Sketchpad' },
-                    { num: '11', person: 'Mark Switajski', action: 'Painting', object: 'Paintbrush' },
-                    { num: '12', person: 'Ben Bowman', action: 'Writing', object: 'Ballpoint Pen' },
-                    { num: '13', person: 'Kevin Sorensen', action: 'Drawing', object: 'Marker' },
-                    { num: '14', person: 'Henry Curtis (or Kayla or Tony lol)', action: 'Stapling', object: 'Stapler' },
-                    { num: '15', person: 'Geoff Sutcliffe', action: 'Cutting', object: 'Scissors' },
-                    { num: '16', person: 'Laura Kovacs', action: 'Gluing', object: 'Glue Stick' },
+                    { num: '10', person: 'Matt', action: 'Sketching', object: 'Sketchpad' },
+                    { num: '11', person: 'Mark', action: 'Painting', object: 'Paintbrush' },
+                    { num: '12', person: 'Ben', action: 'Writing', object: 'Ballpoint Pen' },
+                    { num: '13', person: 'Kevin', action: 'Drawing', object: 'Marker' },
+                    { num: '14', person: 'Henry', action: 'Stapling', object: 'Stapler' },
+                    { num: '15', person: 'Geoff', action: 'Cutting', object: 'Scissors' },
+                    { num: '16', person: 'Laura', action: 'Gluing', object: 'Glue Stick' },
                     { num: '17', person: 'Matthias', action: 'Highlighting', object: 'Highlighter' },
                     { num: '18', person: 'Sophie', action: 'Measuring', object: 'Ruler' },
                     { num: '19', person: 'Sonja', action: 'Erasing', object: 'Eraser' }
@@ -281,11 +314,11 @@
                 range: [30, 39],
                 items: [
                     { num: '30', person: 'Tom Hanks', action: 'Grilling', object: 'Steak' },
-                    { num: '31', person: 'Marilyn Monroe', action: 'Baking', object: 'Cake' },
+                    { num: '31', person: 'Seth Rogen', action: 'Baking', object: 'Weed Brownies' },
                     { num: '32', person: 'Brad Pitt', action: 'Chopping', object: 'Carrot' },
                     { num: '33', person: 'Angelina Jolie', action: 'Blending', object: 'Smoothie' },
                     { num: '34', person: 'Leonardo DiCaprio', action: 'Frying', object: 'Pancake' },
-                    { num: '35', person: 'Scarlett Johansson', action: 'Boiling', object: 'Hot Dogs' },
+                    { num: '35', person: 'Scarlett Johansson', action: 'Boiling', object: 'Hot Dog' },
                     { num: '36', person: 'Will Smith', action: 'Eating', object: 'Spaghetti' },
                     { num: '37', person: 'Jennifer Lawrence', action: 'Peeling', object: 'Banana' },
                     { num: '38', person: 'Keanu Reeves', action: 'Slicing', object: 'Watermelon' },
@@ -299,16 +332,16 @@
                 subtitle: 'Playing Instruments with Musical Instruments',
                 range: [40, 49],
                 items: [
-                    { num: '40', person: 'Elvis Presley', action: 'Strumming', object: 'Acoustic Guitar' },
-                    { num: '41', person: 'Michael Jackson', action: 'Pounding', object: 'Grand Piano' },
-                    { num: '42', person: 'Beyoncé', action: 'Beating', object: 'Drum Kit' },
-                    { num: '43', person: 'Freddie Mercury', action: 'Plucking', object: 'Electric Bass' },
-                    { num: '44', person: 'Taylor Swift', action: 'Bowing', object: 'Violin' },
-                    { num: '45', person: 'Prince', action: 'Blowing', object: 'Saxophone' },
-                    { num: '46', person: 'David Bowie', action: 'Squeezing', object: 'Accordion' },
-                    { num: '47', person: 'Madonna', action: 'Tooting', object: 'Trumpet' },
-                    { num: '48', person: 'Bob Marley', action: 'Rattling', object: 'Bongo Drums' },
-                    { num: '49', person: 'Eminem', action: 'Scratching', object: 'DJ Turntable' }
+                    { num: '40', person: 'Ludwig Van Beethoven', action: 'Pounding', object: 'Grand Piano' },
+                    { num: '41', person: 'Louis Armstrong', action: 'Tooting', object: 'Trumpet' },
+                    { num: '42', person: 'Jeff Coffin', action: 'Blowing', object: 'Saxophone' },
+                    { num: '43', person: 'Victor Wooten', action: 'Slapping', object: 'Electric Bass' },
+                    { num: '44', person: 'Ringo Star', action: 'Beating', object: 'Drum Kit' },
+                    { num: '45', person: 'Weird Al Yankovic', action: 'Squeezing', object: 'Accordion' },
+                    { num: '46', person: 'Bob Marley', action: 'Rattling', object: 'Maracas' },
+                    { num: '47', person: 'Taylor Swift', action: 'Shaking', object: 'Voice' },
+                    { num: '48', person: 'Eminem', action: 'Scratching', object: 'Record' },
+                    { num: '49', person: 'Tim Henson', action: 'Picking', object: 'Electric Guitar' }
                 ]
             },
             {
@@ -318,16 +351,16 @@
                 subtitle: 'Putting On Costumes and Accessories',
                 range: [50, 59],
                 items: [
-                    { num: '50', person: 'Batman', action: 'Swirling', object: 'Black Cape' },
-                    { num: '51', person: 'Superman', action: 'Tugging On', object: 'Red Boots' },
-                    { num: '52', person: 'Spider-Man', action: 'Yanking Over', object: 'Mask' },
-                    { num: '53', person: 'Wonder Woman', action: 'Clasping', object: 'Tiara' },
+                    { num: '50', person: 'Batman', action: 'Spinning', object: 'Batarang' },
+                    { num: '51', person: 'Flash', action: 'Running', object: 'Shoes' },
+                    { num: '52', person: 'Superman', action: 'Cowering', object: 'Cryptonite' },
+                    { num: '53', person: 'Wonder Woman', action: 'Wearing', object: 'Tiara' },
                     { num: '54', person: 'Iron Man', action: 'Sealing', object: 'Helmet' },
-                    { num: '55', person: 'Thor', action: 'Summoning', object: 'Hammer' },
-                    { num: '56', person: 'Captain America', action: 'Buckling', object: 'Shield Emblem' },
-                    { num: '57', person: 'Hulk', action: 'Shredding', object: 'Purple Shorts' },
-                    { num: '58', person: 'Black Panther', action: 'Hooking', object: 'Necklace' },
-                    { num: '59', person: 'Flash', action: 'Snapping', object: 'Running Gloves' }
+                    { num: '55', person: 'Spider-Man', action: 'Pulling (down)', object: 'Mask' },
+                    { num: '56', person: 'Thor', action: 'Summoning', object: 'Hammer' },
+                    { num: '57', person: 'Loki', action: 'Tricking', object: 'Asgaard' },
+                    { num: '58', person: 'Captain America', action: 'Preaching', object: 'Shield' },
+                    { num: '59', person: 'Hulk', action: 'Tearing', object: 'Pants' }
                 ]
             },
             {
@@ -337,10 +370,10 @@
                 subtitle: 'Operating Vehicles with Cartoon Vehicles',
                 range: [60, 69],
                 items: [
-                    { num: '60', person: 'Mickey Mouse', action: 'Driving', object: 'Toontown Roadster' },
-                    { num: '61', person: 'Bugs Bunny', action: 'Steering', object: 'Carrot Mobile' },
+                    { num: '60', person: 'Mickey Mouse', action: 'Driving', object: 'Car' },
+                    { num: '61', person: 'Minnie Mouse', action: 'Backseat-Driving', object: 'Minivan' },
                     { num: '62', person: 'Homer Simpson', action: 'Piloting', object: 'Duff Beer Blimp' },
-                    { num: '63', person: 'SpongeBob SquarePants', action: 'Riding', object: 'Patty Wagon' },
+                    { num: '63', person: 'SpongeBob SquarePants', action: 'Riding', object: 'Seahorse' },
                     { num: '64', person: 'Scooby-Doo', action: 'Cruising', object: 'Mystery Machine' },
                     { num: '65', person: 'Fred Flintstone', action: 'Pedaling', object: 'Foot-Powered Car' },
                     { num: '66', person: 'Pikachu', action: 'Zooming', object: 'Lightning McQueen Car' },
@@ -356,16 +389,16 @@
                 subtitle: 'Scientific Experiments with Living Things',
                 range: [70, 79],
                 items: [
-                    { num: '70', person: 'Abraham Lincoln', action: 'Cloning', object: 'Lab Mouse' },
-                    { num: '71', person: 'George Washington', action: 'Microscoping', object: 'Fruit Fly' },
-                    { num: '72', person: 'Barack Obama', action: 'Analyzing', object: 'Zebrafish' },
-                    { num: '73', person: 'Winston Churchill', action: 'Injecting', object: 'Guinea Pig' },
-                    { num: '74', person: 'Nelson Mandela', action: 'Cultivating', object: 'E. Coli Bacteria' },
-                    { num: '75', person: 'Franklin D. Roosevelt', action: 'Breeding', object: 'Laboratory Rat' },
-                    { num: '76', person: 'John F. Kennedy', action: 'Sequencing', object: 'Plant Shoot' },
-                    { num: '77', person: 'Theodore Roosevelt', action: 'Examining', object: 'Frog Specimen' },
-                    { num: '78', person: 'Angela Merkel', action: 'Centrifuging', object: 'Yeast Culture' },
-                    { num: '79', person: 'Mahatma Gandhi', action: 'Observing', object: 'Ant Colony' }
+                    { num: '70', person: 'George Washington', action: 'Microscoping', object: 'Fruit Fly' },
+                    { num: '71', person: 'Abraham Lincoln', action: 'Cloning', object: 'Lab Mouse' },
+                    { num: '72', person: 'Theodore Roosevelt (Teddy)', action: 'Examining', object: 'Bear' },
+                    { num: '73', person: 'Franklin D. Roosevelt (FDR)', action: 'Breeding', object: 'Laboratory Rat' },
+                    { num: '74', person: 'John F. Kennedy', action: 'Sequencing', object: 'Plant Shoot' },
+                    { num: '75', person: 'Richard Nixon', action: 'Training', object: 'Space Dog (Laika)' },
+                    { num: '76', person: 'Bill Clinton', action: 'Observing', object: 'Ant Colony' },
+                    { num: '77', person: 'Hillary Clinton', action: 'Centrifuging', object: 'Yeast Culture' },
+                    { num: '78', person: 'Barack Obama', action: 'Analyzing', object: 'Zebrafish' },
+                    { num: '79', person: 'Donald Trump', action: 'Injecting', object: 'Guinea Pig' }
                 ]
             },
             {
@@ -375,16 +408,16 @@
                 subtitle: 'Building and Fixing with Furniture',
                 range: [80, 89],
                 items: [
-                    { num: '80', person: 'Albert Einstein', action: 'Sanding', object: 'Wooden Desk' },
-                    { num: '81', person: 'Cleopatra', action: 'Upholstering', object: 'Velvet Sofa' },
-                    { num: '82', person: 'Leonardo da Vinci', action: 'Carving', object: 'Dining Chair' },
-                    { num: '83', person: 'Julius Caesar', action: 'Hammering', object: 'Bookshelf' },
-                    { num: '84', person: 'Joan of Arc', action: 'Refinishing', object: 'Coffee Table' },
-                    { num: '85', person: 'Adolf Hitler', action: 'Nailing', object: 'Nightstand' },
-                    { num: '86', person: 'Galileo Galilei', action: 'Varnishing', object: 'Rocking Chair' },
-                    { num: '87', person: 'Isaac Newton', action: 'Assembling', object: 'Wardrobe' },
-                    { num: '88', person: 'Benjamin Franklin', action: 'Repairing', object: 'Grandfather Clock' },
-                    { num: '89', person: 'Napoléon Bonaparte', action: 'Staining', object: 'Stool' }
+                    { num: '80', person: 'Julius Caesar (100–44 BC)', action: 'Hammering', object: 'Bookshelf' },
+                    { num: '81', person: 'Jesus (c. 4 BC–c. 30 AD)', action: 'Building', object: 'Church' },
+                    { num: '82', person: 'Joan of Arc (1412–1431)', action: 'Refinishing', object: 'Coffee Table' },
+                    { num: '83', person: 'Leonardo da Vinci (1452–1519)', action: 'Chiseling', object: 'Marble' },
+                    { num: '84', person: 'Galileo Galilei (1564–1642)', action: 'Varnishing', object: 'Rocking Chair' },
+                    { num: '85', person: 'Isaac Newton (1643–1727)', action: 'Assembling', object: 'Wardrobe' },
+                    { num: '86', person: 'Benjamin Franklin (1706–1790)', action: 'Repairing', object: 'Grandfather Clock' },
+                    { num: '87', person: 'Napoléon Bonaparte (1769–1821)', action: 'Staining', object: 'Stool' },
+                    { num: '88', person: 'Albert Einstein (1879–1955)', action: 'Sanding', object: 'Wooden Desk' },
+                    { num: '89', person: 'Adolf Hitler (1889–1945)', action: 'Nailing', object: 'Nightstand' }
                 ]
             },
             {
@@ -403,7 +436,7 @@
                     { num: '96', person: 'Frodo Baggins', action: 'Printing', object: 'Wireless Printer' },
                     { num: '97', person: 'James Bond', action: 'Hacking', object: 'Smartwatch' },
                     { num: '98', person: 'Dracula', action: 'Charging', object: 'Power Bank' },
-                    { num: '99', person: 'Alice in Wonderland', action: 'Rendering', object: 'VR Headset' }
+                    { num: '99', person: 'Alice in Wonderland', action: 'Rendering', object: 'Nvidia Graphics Card' }
                 ]
             }
         ];
@@ -425,7 +458,98 @@
 
         // Load data from LocalStorage or fallback to a deep copy of the defaults
         // (deep copy so edits can never mutate the hardcoded defaultPAOData)
-        let paoData = JSON.parse(localStorage.getItem('pao_memory_data')) || JSON.parse(JSON.stringify(defaultPAOData));
+        // ------------------------------------------------------------------
+        // Versioned defaults: a baseline copy of the defaults your local data was
+        // built from is stored alongside it, so on load the app can recognize the
+        // file's newer versions by itself — fields you haven't touched locally are
+        // updated automatically, fields you edited stay yours.
+        // ------------------------------------------------------------------
+        const PAO_DATA_KEY = 'pao_memory_data';
+        const PAO_BASELINE_KEY = 'pao_memory_baseline';
+
+        function fileDefaultsCopy() {
+            return JSON.parse(JSON.stringify(defaultPAOData));
+        }
+
+        function itemsByNum(sections) {
+            const byNum = {};
+            sections.forEach(category => category.items.forEach(item => { byNum[item.num] = item; }));
+            return byNum;
+        }
+
+        function mergeStoredWithFile(stored, baseline, file) {
+            const baseItems = itemsByNum(baseline);
+            const fileItems = itemsByNum(file);
+            const fileById = {};
+            const baseById = {};
+            file.forEach(category => { fileById[category.id] = category; });
+            baseline.forEach(category => { baseById[category.id] = category; });
+            const adopted = [];
+
+            const data = stored.map(category => {
+                const fileCategory = fileById[category.id];
+                const baseCategory = baseById[category.id];
+                if (!fileCategory || !baseCategory) return category;
+
+                const merged = Object.assign({}, category);
+                ['emoji', 'title', 'subtitle'].forEach(field => {
+                    if (baseCategory[field] === category[field] && fileCategory[field] !== category[field]) {
+                        merged[field] = fileCategory[field];
+                        adopted.push(category.id + '.' + field);
+                    }
+                });
+
+                // Field-level merge: adopt the file's value only where the local copy
+                // still matches the baseline (i.e. you haven't edited that field).
+                merged.items = category.items.map(item => {
+                    const fileItem = fileItems[item.num];
+                    const baseItem = baseItems[item.num];
+                    if (!fileItem || !baseItem) return item;
+                    const mergedItem = Object.assign({}, item);
+                    ['person', 'action', 'object'].forEach(field => {
+                        if ((baseItem[field] || '') === (item[field] || '') && fileItem[field] !== item[field]) {
+                            mergedItem[field] = fileItem[field];
+                            adopted.push(item.num + ':' + field);
+                        }
+                    });
+                    return mergedItem;
+                });
+
+                // Adopt the file's ordering too, unless the rows were reordered locally.
+                const baseOrder = baseCategory.items.map(i => i.num).join(',');
+                const orderUnchanged = baseOrder === category.items.map(i => i.num).join(',');
+                if (orderUnchanged && baseOrder !== fileCategory.items.map(i => i.num).join(',')) {
+                    merged.items = fileCategory.items.map(fileItem => merged.items.find(i => i.num === fileItem.num) || fileItem);
+                    adopted.push(category.id + ':order');
+                }
+                return merged;
+            });
+
+            return { data, adopted };
+        }
+
+        function loadPAOData() {
+            const file = fileDefaultsCopy();
+            let stored = null;
+            try { stored = JSON.parse(localStorage.getItem(PAO_DATA_KEY)); } catch (e) { stored = null; }
+            if (!Array.isArray(stored) || !stored.length) return { data: file, adopted: [], file };
+
+            let baseline = null;
+            try { baseline = JSON.parse(localStorage.getItem(PAO_BASELINE_KEY)); } catch (e) { baseline = null; }
+            // First run after versioning: keep your data as-is and adopt the file as
+            // the baseline so every future file update is recognized automatically.
+            if (!Array.isArray(baseline) || !baseline.length) return { data: stored, adopted: [], file };
+
+            return Object.assign({ file }, mergeStoredWithFile(stored, baseline, file));
+        }
+
+        const initialLoad = loadPAOData();
+        let paoData = initialLoad.data;
+        const adoptedFromApp = initialLoad.adopted;
+        try {
+            localStorage.setItem(PAO_BASELINE_KEY, JSON.stringify(initialLoad.file));
+            if (adoptedFromApp.length) localStorage.setItem(PAO_DATA_KEY, JSON.stringify(paoData));
+        } catch (e) { /* private mode etc. */ }
 
         // Remembers which sections are expanded, so a re-render (e.g. after reordering)
         // doesn't collapse the section you're working in. Keyed by category id.
@@ -1027,18 +1151,29 @@
         // --- Practice / spaced-repetition quiz ------------------------------------
         const QUIZ_KEY = 'pao_quiz_progress';
         const QUIZ_META_KEY = 'pao_quiz_meta';
+        const QUIZ_META_BY_MODE_KEY = 'pao_quiz_meta_by_mode';
         const QUIZ_MIN = 60 * 1000;
         const QUIZ_DAY = 24 * 60 * 60 * 1000;
         const QUIZ_FIELD_LABELS = { person: 'Person', action: 'Action', object: 'Object' };
 
         let quizProgress = {};
         let quizMeta = { answered: 0, correct: 0 };
+        let quizMetaByMode = {};
         try { quizProgress = JSON.parse(localStorage.getItem(QUIZ_KEY)) || {}; } catch (e) { quizProgress = {}; }
         try { quizMeta = JSON.parse(localStorage.getItem(QUIZ_META_KEY)) || quizMeta; } catch (e) { /* keep defaults */ }
+        try { quizMetaByMode = JSON.parse(localStorage.getItem(QUIZ_META_BY_MODE_KEY)) || {}; } catch (e) { quizMetaByMode = {}; }
 
         let quizSession = null;
 
         function quizKey(num, field) { return `${num}:${field}`; }
+        function currentQuizModeKey() {
+            const task = document.getElementById('quizTask') ? document.getElementById('quizTask').value : 'recall';
+            const style = document.getElementById('quizStyle') ? document.getElementById('quizStyle').value : 'parts';
+            if (task === 'numFromPic') return 'numFromPic';
+            if (task === 'digitsToPao') return 'digitsToPao';
+            if (task === 'paoFromNum') return 'paoFromNum';
+            return task + ':' + style;
+        }
 
         function quizStateFor(num, field) {
             const key = quizKey(num, field);
@@ -1068,6 +1203,18 @@
         }
 
         // Case-insensitive, diacritic- and punctuation-tolerant comparison
+        // Remove common endings for flexible matching of words (ing, ed, s, es)
+        function stemQuizWord(w) {
+            let x = w;
+            if (x.length > 4 && x.endsWith('ing')) return x.slice(0, -3);
+            if (x.length > 3 && x.endsWith('ies')) return x.slice(0, -3) + 'y';
+            if (x.length > 3 && x.endsWith('ied')) return x.slice(0, -3) + 'y';
+            if (x.length > 3 && x.endsWith('ed')) return x.slice(0, -2);
+            if (x.length > 3 && x.endsWith('es')) return x.slice(0, -2);
+            if (x.length > 3 && x.endsWith('s')) return x.slice(0, -1);
+            return x;
+        }
+
         function normalizeQuiz(value) {
             return (value || '')
                 .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -1075,6 +1222,12 @@
                 .replace(/[^a-z0-9\s]/g, ' ')
                 .replace(/\s+/g, ' ')
                 .trim();
+        }
+
+        function normalizeQuizFlexible(value) {
+            const base = normalizeQuiz(value);
+            if (!base) return '';
+            return base.split(' ').map(stemQuizWord).join(' ');
         }
 
         function quizItemByNum(field, num) {
@@ -1096,19 +1249,38 @@
             return 'mc';
         }
 
-        function quizOptions(field, correct) {
+        function getCategoryRangeForNum(num) {
+            const n = parseInt(num, 10);
+            for (let i = 0; i < paoData.length; i++) {
+                const r = paoData[i].range;
+                if (n >= r[0] && n <= r[1]) return r;
+            }
+            return [Math.floor(n / 10) * 10, Math.floor(n / 10) * 10 + 9];
+        }
+
+        function quizOptions(field, correct, num) {
             const seen = new Set();
             const pool = [];
+            const r = getCategoryRangeForNum(num || '00');
+            // Prefer same group
             paoData.forEach(category => category.items.forEach(item => {
                 const value = (item[field] || '').trim();
                 const norm = normalizeQuiz(value);
                 if (value && norm !== normalizeQuiz(correct) && !seen.has(norm)) {
+                    pool.push({ v: value, same: (parseInt(item.num, 10) >= r[0] && parseInt(item.num, 10) <= r[1]) });
                     seen.add(norm);
-                    pool.push(value);
                 }
             }));
             shuffle(pool);
-            const options = pool.slice(0, 3);
+            const same = pool.filter(x => x.same).map(x => x.v);
+            const diff = pool.filter(x => !x.same).map(x => x.v);
+            const options = [];
+            // Get 2 same-group, 1 other if possible
+            for (let i = 0; i < 2 && same.length > 0; i++) { options.push(same.shift()); }
+            for (let i = options.length; i < 3 && diff.length > 0; i++) { options.push(diff.shift()); }
+            // Fill if short
+            const rest = same.concat(diff);
+            while (options.length < 3 && rest.length > 0) { options.push(rest.shift()); }
             options.push(correct);
             return shuffle(options);
         }
@@ -1256,13 +1428,42 @@
             return el ? el.value : 'all';
         }
 
-        // Parse the "Selected few" pool: returns an array of 2-digit numbers, or null (= all)
+        // Parse the "Selected few" pool: returns an array of 2-digit numbers, or null (= all). Supports comma/space separated values and ranges like 10-15
         function parseQuizPool() {
             const input = document.getElementById('quizPoolInput');
             if (!input) return null;
-            const tokens = (input.value.match(/\d+/g) || []).filter(t => t.length <= 2);
-            const nums = [...new Set(tokens.map(t => t.padStart(2, '0')))];
-            return nums.length ? nums : null;
+            const text = input.value || '';
+            const numsSet = new Set();
+            // Split by commas and whitespace
+            const parts = text.split(/[\s,]+/).filter(Boolean);
+            parts.forEach(part => {
+                // Range like 10-15 or 00-09
+                if (part.includes('-')) {
+                    const [a, b] = part.split('-');
+                    const start = parseInt(a, 10);
+                    const end = parseInt(b, 10);
+                    if (isNaN(start) || isNaN(end)) return;
+                    const from = Math.min(start, end);
+                    const to = Math.max(start, end);
+                    for (let i = from; i <= to; i++) {
+                        if (i >= 0 && i <= 99) {
+                            numsSet.add(i.toString().padStart(2, '0'));
+                        }
+                    }
+                    return;
+                }
+                // Single number
+                const m = part.match(/\d+/);
+                if (m) {
+                    let n = parseInt(m[0], 10);
+                    if (isNaN(n)) return;
+                    if (n >= 0 && n <= 99) {
+                        numsSet.add(n.toString().padStart(2, '0'));
+                    }
+                }
+            });
+            if (numsSet.size === 0) return null;
+            return Array.from(numsSet);
         }
 
         function startQuizSession() {
@@ -1270,8 +1471,63 @@
             const style = currentQuizStyle();
             const scope = currentQuizScope();
             const pool = scope === 'selected' ? parseQuizPool() : null;
+            const taskEl = document.getElementById('quizTask');
+            const task = taskEl ? taskEl.value : 'recall';
             const dueNums = [];
             const newNums = [];
+
+            if (task === 'digitsToPao') {
+                // Build pool of available numbers
+                const available = [];
+                paoData.forEach(category => category.items.forEach(item => {
+                    const num = item.num;
+                    if (pool && !pool.includes(num)) return;
+                    available.push(num);
+                }));
+                shuffle(available);
+                const selected = available.slice(0, size);
+                quizSession = {
+                    style: 'parts',
+                    scope,
+                    task,
+                    queue: selected.map(num => ({ num, digits: num + num, fields: ['person', 'action', 'object'] })),
+                    pos: 0,
+                    fieldIdx: 0,
+                    answered: 0,
+                    correct: 0,
+                    planned: selected.length,
+                    locked: false
+                };
+                // better: for each, construct 6 digits as p+p? a+a? o+o? use the actual number's two digits repeated? Or just show 6 digits = num + num
+                renderQuiz();
+                return;
+            }
+
+            // P/A/O -> Number mode
+            if (task === 'paoFromNum') {
+                const available = [];
+                paoData.forEach(category => category.items.forEach(item => {
+                    const num = item.num;
+                    if (pool && !pool.includes(num)) return;
+                    available.push(num);
+                }));
+                shuffle(available);
+                const selected = available.slice(0, size);
+                quizSession = {
+                    style: 'parts',
+                    scope,
+                    task,
+                    queue: selected.map(num => ({ num, fields: [DUP_FIELDS[Math.floor(Math.random()*DUP_FIELDS.length)]] })),
+                    pos: 0,
+                    fieldIdx: 0,
+                    answered: 0,
+                    correct: 0,
+                    planned: selected.length,
+                    locked: false
+                };
+                renderQuiz();
+                return;
+            }
 
             paoData.forEach(category => category.items.forEach(item => {
                 const num = item.num;
@@ -1295,6 +1551,7 @@
             quizSession = {
                 style,
                 scope,
+                task,
                 queue: nums.map(num => ({ num, fields: fields.slice() })),
                 pos: 0,
                 fieldIdx: 0,
@@ -1315,17 +1572,37 @@
             }
 
             const entry = quizSession.queue[quizSession.pos];
+            const task = quizSession.task || 'recall';
             const wholeImageMode = quizSession.style === 'image';
             const fromImageMode = quizSession.style === 'fromimage';
             const imageMode = wholeImageMode || fromImageMode;
-            const field = imageMode ? 'image' : entry.fields[quizSession.fieldIdx];
-            const correct = imageMode ? quizImageText(entry.num) : quizItemByNum(field, entry.num);
-            const state = quizStateFor(entry.num, imageMode ? 'person' : field);
-            const mode = imageMode ? 'mc' : quizModeFor(state);
-            const fieldLabel = wholeImageMode ? 'Whole image'
+            const digitsToPao = task === 'digitsToPao';
+            const paoFromNum = task === 'paoFromNum';
+            const numFromPicTask = task === 'numFromPic';
+            let field;
+            if (digitsToPao) {
+                field = entry.fields[quizSession.fieldIdx] || 'person';
+            } else if (paoFromNum) {
+                field = entry.fields[quizSession.fieldIdx] || 'person';
+            } else if (imageMode) {
+                field = 'image';
+            } else {
+                field = entry.fields[quizSession.fieldIdx];
+            }
+            const correct = imageMode ? quizImageText(entry.num) : (paoFromNum ? entry.num : quizItemByNum(field, entry.num));
+            const state = quizStateFor(entry.num, (imageMode || digitsToPao) ? 'person' : field);
+            const ansModeSetting = document.getElementById('quizAnswerMode') ? document.getElementById('quizAnswerMode').value : 'mc';
+            const mode = (imageMode || digitsToPao || paoFromNum) ? ansModeSetting : quizModeFor(state);
+            const fieldLabel = digitsToPao ? '6 digits → ' + (QUIZ_FIELD_LABELS[field] || field)
+                             : paoFromNum ? 'P/A/O → Number'
+                             : numFromPicTask ? 'Type number from picture'
+                             : wholeImageMode ? 'Whole image'
                              : fromImageMode ? 'Number from image'
                              : QUIZ_FIELD_LABELS[field];
-            const prompt = wholeImageMode ? 'Which image belongs to this number?'
+            const prompt = digitsToPao ? `Given <b class="font-mono">${escapeHTML(entry.digits)}</b>, type the <b>${QUIZ_FIELD_LABELS[field] || field}</b>.`
+                         : paoFromNum ? `Given the <b>${QUIZ_FIELD_LABELS[field]}</b> "${escapeHTML(quizItemByNum(field, entry.num))}", what is the number?`
+                         : numFromPicTask ? 'What number is this image?'
+                         : wholeImageMode ? 'Which image belongs to this number?'
                          : fromImageMode ? 'What number is this image?'
                          : `What is the <b>${fieldLabel}</b>?`;
 
@@ -1333,7 +1610,7 @@
             updateQuizStats();
 
             // The number IS the question in "number from image" mode — never show it up front
-            const bigNumberHTML = fromImageMode ? ''
+            const bigNumberHTML = (fromImageMode || digitsToPao || paoFromNum) ? ''
                 : `<div class="font-mono text-6xl font-bold text-indigo-600 my-5">${escapeHTML(entry.num)}</div>`;
 
             card.innerHTML = `
@@ -1347,7 +1624,75 @@
                 </div>`;
 
             const area = document.getElementById('quizAnswerArea');
-            if (fromImageMode) {
+            if (digitsToPao) {
+                const wrap = document.createElement('div');
+                wrap.className = 'flex flex-col items-center gap-4';
+                const inputWrap = document.createElement('div');
+                inputWrap.className = 'flex gap-3 justify-center items-center';
+                inputWrap.innerHTML = `
+                    <input id="quizTypeInput" type="text" autocomplete="off" spellcheck="false" placeholder="Type your answer…" list="paoDatalist"
+                        class="px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 sm:w-72">
+                    <datalist id="paoDatalist"></datalist>
+                    <button id="quizCheckBtn" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">Check</button>`;
+                wrap.appendChild(inputWrap);
+                area.appendChild(wrap);
+                const dl = document.getElementById('paoDatalist');
+                if (dl) {
+                    const vals = new Set();
+                    paoData.forEach(c => c.items.forEach(it => { vals.add(it[field]); }));
+                    Array.from(vals).forEach(v => { const opt = document.createElement('option'); opt.value = v; dl.appendChild(opt); });
+                }
+                const input = document.getElementById('quizTypeInput');
+                input.focus();
+                input.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') { e.preventDefault(); submitQuizAnswer(input.value); }
+                });
+            } else if (paoFromNum) {
+                if (mode === 'mc') {
+                    const grid = document.createElement('div');
+                    grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-3';
+                    // Get options for the number
+                    const correctNum = entry.num;
+                    const opts = [];
+                    const r = getCategoryRangeForNum(correctNum);
+                    const seen = new Set([correctNum]);
+                    // add 2 from same group
+                    paoData.forEach(c => c.items.forEach(it => {
+                        const nn = parseInt(it.num,10);
+                        if (nn>=r[0] && nn<=r[1] && !seen.has(it.num)) { opts.push(it.num); seen.add(it.num); }
+                    }));
+                    shuffle(opts);
+                    const choices = opts.slice(0,2);
+                    // add 1-2 others
+                    paoData.forEach(c => c.items.forEach(it => {
+                        if (!seen.has(it.num)) { opts.push(it.num); seen.add(it.num); }
+                    }));
+                    shuffle(opts);
+                    while (choices.length < 3 && opts.length>0) { choices.push(opts.shift()); }
+                    choices.push(correctNum);
+                    shuffle(choices);
+                    choices.forEach((optv, idx) => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'quiz-option text-left px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 text-slate-700 font-mono font-bold transition flex items-center gap-3';
+                        btn.setAttribute('data-value', optv);
+                        btn.innerHTML = `<span class="text-[10px] text-slate-400 font-mono border border-slate-200 rounded px-1">${idx + 1}</span><span>${escapeHTML(optv)}</span>`;
+                        grid.appendChild(btn);
+                    });
+                    area.appendChild(grid);
+                } else {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'flex flex-col sm:flex-row gap-3 justify-center';
+                    wrap.innerHTML = `
+                        <input id="quizTypeInput" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="Type the number…"
+                            class="px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 text-sm text-center font-mono w-28 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400">
+                        <button id="quizCheckBtn" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">Check</button>`;
+                    area.appendChild(wrap);
+                    const input = document.getElementById('quizTypeInput');
+                    input.focus();
+                    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitQuizAnswer(input.value); } });
+                }
+            } else if (fromImageMode || numFromPicTask) {
                 const wrap = document.createElement('div');
                 wrap.className = 'flex flex-col items-center gap-4';
                 renderQuizImage(wrap, entry.num);
@@ -1415,9 +1760,24 @@
             const wholeImageMode = quizSession.style === 'image';
             const fromImageMode = quizSession.style === 'fromimage';
             const imageMode = wholeImageMode || fromImageMode;
+            const digitsToPao = quizSession.task === 'digitsToPao';
             let isCorrect, correctValue;
 
-            if (wholeImageMode) {
+            if (digitsToPao) {
+                const field = entry.fields[quizSession.fieldIdx];
+                correctValue = quizItemByNum(field, entry.num);
+                const givenNorm = normalizeQuiz(given);
+                const corrNorm = normalizeQuiz(correctValue);
+                const givenFlex = normalizeQuizFlexible(given);
+                const corrFlex = normalizeQuizFlexible(correctValue);
+                const coreNorm = normalizeQuiz(String(correctValue || '').replace(/\s*\([^()]*\)\s*$/, ''));
+                isCorrect = givenNorm !== '' && (givenNorm === corrNorm || givenFlex === corrFlex || givenNorm === coreNorm);
+            } else if (quizSession.task === 'paoFromNum') {
+                correctValue = entry.num;
+                const givenNorm = (given + '').replace(/\D+/g,'');
+                isCorrect = givenNorm !== '' && givenNorm.padStart(2,'0') === entry.num || given === entry.num;
+            } else if (Array.isArray(given)) {
+            } else if (wholeImageMode) {
                 isCorrect = given === entry.num;
                 correctValue = quizImageText(entry.num);
             } else if (fromImageMode) {
@@ -1428,13 +1788,23 @@
                 const field = entry.fields[quizSession.fieldIdx];
                 correctValue = quizItemByNum(field, entry.num);
                 const givenNorm = normalizeQuiz(given);
-                isCorrect = givenNorm !== '' && givenNorm === normalizeQuiz(correctValue);
+                const corrNorm = normalizeQuiz(correctValue);
+                const givenFlex = normalizeQuizFlexible(given);
+                const corrFlex = normalizeQuizFlexible(correctValue);
+                // Accept either the full display name (with birth-death years) or
+                // the name on its own, so "Einstein" isn't wrong vs "Einstein (1879-1955)".
+                const coreNorm = normalizeQuiz(String(correctValue || '').replace(/\s*\([^()]*\)\s*$/, ''));
+                isCorrect = givenNorm !== '' && (givenNorm === corrNorm || givenFlex === corrFlex || givenNorm === coreNorm);
             }
 
             quizSession.locked = true;
+            const qtaskSub = quizSession.task || 'recall';
+            const digitsToPaoSub = qtaskSub === 'digitsToPao';
 
-            // Image modes grade all three aspects together
-            if (imageMode) {
+            // Image modes or full picture modes grade all three aspects together
+            if (imageMode || digitsToPaoSub) {
+                DUP_FIELDS.forEach(field => gradeQuizItem(quizStateFor(entry.num, field), isCorrect));
+            } else if (quizSession.task === 'paoFromNum') {
                 DUP_FIELDS.forEach(field => gradeQuizItem(quizStateFor(entry.num, field), isCorrect));
             } else {
                 gradeQuizItem(quizStateFor(entry.num, entry.fields[quizSession.fieldIdx]), isCorrect);
@@ -1444,12 +1814,23 @@
             quizMeta.answered++;
             if (isCorrect) quizMeta.correct++;
             saveQuizMeta();
+            const mk = currentQuizModeKey();
+            if (!quizMetaByMode[mk]) quizMetaByMode[mk] = { answered: 0, correct: 0 };
+            quizMetaByMode[mk].answered++;
+            if (isCorrect) quizMetaByMode[mk].correct++;
+            try { localStorage.setItem(QUIZ_META_BY_MODE_KEY, JSON.stringify(quizMetaByMode)); } catch (e) {}
 
             quizSession.answered++;
             if (isCorrect) quizSession.correct++;
 
             if (!isCorrect) {
-                quizSession.queue.push({ num: entry.num, fields: imageMode ? ['image'] : [entry.fields[quizSession.fieldIdx]] });
+                if (digitsToPaoSub) {
+                    quizSession.queue.push({ num: entry.num, fields: ['person', 'action', 'object'] });
+                } else if (quizSession.task === 'paoFromNum') {
+                    quizSession.queue.push({ num: entry.num, fields: ['person', 'action', 'object'] });
+                } else {
+                    quizSession.queue.push({ num: entry.num, fields: imageMode ? ['image'] : [entry.fields[quizSession.fieldIdx]] });
+                }
             }
 
             showQuizFeedback(isCorrect, correctValue, given);
@@ -1467,6 +1848,7 @@
 
             const entry = quizSession ? quizSession.queue[quizSession.pos] : null;
             const imageMode = quizSession && quizSession.style === 'image';
+            const qtask = quizSession ? (quizSession.task || 'recall') : 'recall';
 
             document.querySelectorAll('.quiz-option').forEach(btn => {
                 const value = btn.getAttribute('data-value');
@@ -1484,8 +1866,9 @@
                 }
             });
 
-            // "Number from image" mode has a typed input instead of options
-            if (quizSession && quizSession.style === 'fromimage') {
+            // Typed input modes
+            const qtaskFb3 = quizSession ? (quizSession.task || 'recall') : 'recall';
+            if (quizSession && (quizSession.style === 'fromimage' || qtaskFb3 === 'numFromPic' || qtaskFb3 === 'digitsToPao' || qtaskFb3 === 'paoFromNum')) {
                 const input = document.getElementById('quizTypeInput');
                 if (input) {
                     input.disabled = true;
@@ -1520,8 +1903,12 @@
             document.getElementById('quizStatNew').textContent = counts.fresh;
             document.getElementById('quizStatLearning').textContent = counts.learning;
             document.getElementById('quizStatMature').textContent = counts.mature;
-            document.getElementById('quizStatAccuracy').textContent = quizMeta.answered
-                ? `${Math.round((quizMeta.correct / quizMeta.answered) * 100)}% (${quizMeta.correct}/${quizMeta.answered})`
+            const mk = currentQuizModeKey();
+            let m = quizMetaByMode[mk] || { answered: 0, correct: 0 };
+            const label = document.getElementById('quizStatModeLabel');
+            if (label) label.textContent = mk;
+            document.getElementById('quizStatAccuracy').textContent = m.answered
+                ? `${Math.round((m.correct / m.answered) * 100)}% (${m.correct}/${m.answered})`
                 : '–';
             document.getElementById('quizStatProgress').textContent = quizSession
                 ? `${quizSession.answered} answered · ${Math.max(0, quizSession.queue.length - quizSession.pos)} left`
@@ -1554,8 +1941,10 @@
             if (!confirm('Reset all practice progress and spaced-repetition history?')) return;
             quizProgress = {};
             quizMeta = { answered: 0, correct: 0 };
+            quizMetaByMode = {};
             localStorage.removeItem(QUIZ_KEY);
             localStorage.removeItem(QUIZ_META_KEY);
+            localStorage.removeItem(QUIZ_META_BY_MODE_KEY);
             startQuizSession();
             showToast('Practice progress reset.');
         }
@@ -1596,7 +1985,7 @@
         // Save state to local storage with visual feedback
         let saveTimeout;
         function saveToLocalStorage() {
-            localStorage.setItem('pao_memory_data', JSON.stringify(paoData));
+            localStorage.setItem(PAO_DATA_KEY, JSON.stringify(paoData));
             
             const indicator = document.getElementById('savedIndicator');
             indicator.innerHTML = `
@@ -1651,8 +2040,26 @@
         document.getElementById('driftModal').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) closeDriftModal();
         });
+
+        const quizStatsInfoBtn = document.getElementById('quizStatsInfoBtn');
+        const quizStatsModal = document.getElementById('quizStatsModal');
+        const quizStatsModalClose = document.getElementById('quizStatsModalClose');
+        if (quizStatsInfoBtn && quizStatsModal) {
+            quizStatsInfoBtn.addEventListener('click', () => quizStatsModal.classList.remove('hidden'));
+        }
+        if (quizStatsModalClose && quizStatsModal) {
+            quizStatsModalClose.addEventListener('click', () => quizStatsModal.classList.add('hidden'));
+        }
+        if (quizStatsModal) {
+            quizStatsModal.addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) quizStatsModal.classList.add('hidden');
+            });
+        }
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeDriftModal();
+            if (e.key === 'Escape') {
+                closeDriftModal();
+                if (quizStatsModal) quizStatsModal.classList.add('hidden');
+            }
         });
 
         // Any clickable "jump to number" chip (duplicate banner or modal)
@@ -1675,14 +2082,37 @@
         function refreshQuizControls() {
             const style = currentQuizStyle();
             const scope = currentQuizScope();
+            const task = document.getElementById('quizTask') ? document.getElementById('quizTask').value : 'recall';
             // Answer mode (adaptive/auto-typed) only applies to the "Parts" question style
-            document.getElementById('quizAnswerModeWrap').classList.toggle('hidden', style !== 'parts');
+            document.getElementById('quizAnswerModeWrap').classList.toggle('hidden', style !== 'parts' || task !== 'recall');
             document.getElementById('quizPoolWrap').classList.toggle('hidden', scope !== 'selected');
+            const grid = document.getElementById('quizModeGrid');
+            if (grid) grid.classList.remove('hidden');
+            document.querySelectorAll('.quiz-mode-btn').forEach(b => {
+                const bt = b.getAttribute('data-task');
+                const bs = b.getAttribute('data-style') || '';
+                if (bt === task && (bs === '' || bs === style)) {
+                    b.classList.add('border-indigo-500', 'bg-indigo-50');
+                } else {
+                    b.classList.remove('border-indigo-500', 'bg-indigo-50');
+                }
+            });
         }
 
-        document.getElementById('quizStyle').addEventListener('change', () => {
-            refreshQuizControls();
-            startQuizSession();
+        const quizModeBtns = document.querySelectorAll('.quiz-mode-btn');
+        quizModeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const task = btn.getAttribute('data-task') || 'recall';
+                const style = btn.getAttribute('data-style') || 'parts';
+                const taskEl = document.getElementById('quizTask');
+                const styleEl = document.getElementById('quizStyle');
+                if (taskEl) taskEl.value = task;
+                if (styleEl) styleEl.value = style;
+                quizModeBtns.forEach(b => b.classList.remove('border-indigo-500', 'bg-indigo-50'));
+                btn.classList.add('border-indigo-500', 'bg-indigo-50');
+                refreshQuizControls();
+                startQuizSession();
+            });
         });
         document.getElementById('quizScope').addEventListener('change', () => {
             refreshQuizControls();
@@ -1745,15 +2175,56 @@
 
         document.getElementById('resetDataBtn').addEventListener('click', () => {
             if (confirm('Are you sure you want to reset all customizations back to default defaults?')) {
-                localStorage.removeItem('pao_memory_data');
-                paoData = JSON.parse(JSON.stringify(defaultPAOData));
+                localStorage.removeItem(PAO_DATA_KEY);
+                paoData = fileDefaultsCopy();
                 renderPAOApp();
                 showToast('Reset all items to default values.');
             }
         });
 
+        // ------------------------------------------------------------------
+        // Theme: system (default) → dark → light → system
+        // ------------------------------------------------------------------
+        const THEME_KEY = 'pao_theme';
+        const THEME_ORDER = ['system', 'dark', 'light'];
+        const THEME_ICONS = { system: '🖥️', dark: '🌙', light: '☀️' };
+
+        function themePref() {
+            try { return localStorage.getItem(THEME_KEY) || 'system'; } catch (e) { return 'system'; }
+        }
+
+        function applyTheme(pref) {
+            const dark = pref === 'dark' || (pref !== 'light' &&
+                window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.classList.toggle('dark', dark);
+            document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+            const btn = document.getElementById('themeBtn');
+            if (btn) {
+                btn.textContent = THEME_ICONS[pref] || THEME_ICONS.system;
+                btn.title = 'Theme: ' + pref + ' (click to change)';
+            }
+        }
+
+        document.getElementById('themeBtn').addEventListener('click', () => {
+            const next = THEME_ORDER[(THEME_ORDER.indexOf(themePref()) + 1) % THEME_ORDER.length];
+            try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* ignore */ }
+            applyTheme(next);
+        });
+
+        applyTheme(themePref());
+        if (window.matchMedia) {
+            const mq = window.matchMedia('(prefers-color-scheme: dark)');
+            const onSystemChange = () => { if (themePref() === 'system') applyTheme('system'); };
+            if (mq.addEventListener) mq.addEventListener('change', onSystemChange);
+            else if (mq.addListener) mq.addListener(onSystemChange);
+        }
+
         // Initial Render on Window Load
         window.onload = function() {
+            if (typeof adoptedFromApp !== 'undefined' && adoptedFromApp.length) {
+                showToast(adoptedFromApp.length + ' field' + (adoptedFromApp.length === 1 ? '' : 's') +
+                    ' updated automatically from the app defaults.');
+            }
             renderPAOApp();
             refreshQuizControls();
         };

@@ -137,17 +137,41 @@ def make_diffusers(args):
 
     use_cuda = torch.cuda.is_available()
     dtype = torch.float16 if use_cuda else torch.float32
-    pipe = AutoPipelineForText2Image.from_pretrained(
-        args.model,
-        torch_dtype=dtype,
-        variant="fp16" if use_cuda else None,
-    )
+    extra = {}
+    if args.no_safety_checker:
+        extra = {"safety_checker": None, "requires_safety_checker": False}
+
+    # Prefer the half-size fp16 weights when the repo ships them (works on CPU
+    # too, where torch_dtype casts them back); fall back to the full weights.
+    try:
+        pipe = AutoPipelineForText2Image.from_pretrained(
+            args.model, torch_dtype=dtype, variant="fp16", **extra
+        )
+    except Exception:  # noqa: BLE001
+        pipe = AutoPipelineForText2Image.from_pretrained(
+            args.model, torch_dtype=dtype, **extra
+        )
     pipe = pipe.to("cuda" if use_cuda else "cpu")
+
+    # Match the A1111 provider's default sampler: DPM++ 2M Karras converges
+    # cleaner than the stock scheduler these repos ship. Leave turbo-style runs
+    # (no guidance) on their own scheduler.
+    if args.cfg > 0 and args.steps >= 10:
+        from diffusers import DPMSolverMultistepScheduler
+        pipe.scheduler = DPMSolverMultistepScheduler.from_config(
+            pipe.scheduler.config, use_karras_sigmas=True
+        )
+
+    sliced = False
+    if use_cuda and torch.cuda.get_device_properties(0).total_memory < 5 * 1024**3:
+        pipe.enable_attention_slicing()  # GTX 1650-class 4GB cards
+        sliced = True
+
     gen_kwargs = {"num_inference_steps": args.steps, "guidance_scale": args.cfg}
     if args.seed is not None and args.seed >= 0:
         gen_kwargs["generator"] = torch.Generator(device=pipe.device).manual_seed(args.seed)
     print(f"Loaded {args.model} on {'cuda' if use_cuda else 'cpu'} "
-          f"(steps={args.steps}, cfg={args.cfg})")
+          f"(steps={args.steps}, cfg={args.cfg}, slicing={sliced})")
 
     def generate(prompt, path):
         img = pipe(
@@ -184,6 +208,8 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--check", action="store_true", help="test the A1111 server and exit")
     ap.add_argument("--delay", type=float, default=0.0, help="seconds between requests")
+    ap.add_argument("--no-safety-checker", action="store_true",
+                    help="skip the diffusers safety checker (it can blur innocent cards)")
     args = ap.parse_args()
 
     # provider-aware defaults
