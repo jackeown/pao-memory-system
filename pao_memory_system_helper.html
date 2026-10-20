@@ -1285,6 +1285,41 @@
             return shuffle(options);
         }
 
+        // --- "6 digits -> P+A+O" helpers ------------------------------------------
+        // The 6 digits are Person(2) + Action(2) + Object(2). Each part is shown
+        // and answered separately, color-coded by type.
+        const PART_STYLES = {
+            person: { label: 'Person', text: 'text-indigo-600', border: 'border-indigo-200', hoverBg: 'hover:bg-indigo-50', hoverBorder: 'hover:border-indigo-300', focus: 'focus:ring-indigo-300 focus:border-indigo-400', selBorder: 'border-indigo-500', selBg: 'bg-indigo-50' },
+            action: { label: 'Action', text: 'text-rose-600', border: 'border-rose-200', hoverBg: 'hover:bg-rose-50', hoverBorder: 'hover:border-rose-300', focus: 'focus:ring-rose-300 focus:border-rose-400', selBorder: 'border-rose-500', selBg: 'bg-rose-50' },
+            object: { label: 'Object', text: 'text-emerald-600', border: 'border-emerald-200', hoverBg: 'hover:bg-emerald-50', hoverBorder: 'hover:border-emerald-300', focus: 'focus:ring-emerald-300 focus:border-emerald-400', selBorder: 'border-emerald-500', selBg: 'bg-emerald-50' }
+        };
+        const QUIZ_PARTS = ['person', 'action', 'object'];
+        const PART_NUM_KEY = { person: 'pNum', action: 'aNum', object: 'oNum' };
+
+        function tripleText(pNum, aNum, oNum) {
+            return `${quizItemByNum('person', pNum)} ${quizItemByNum('action', aNum)} ${quizItemByNum('object', oNum)}`;
+        }
+
+        function matchesQuizValue(given, correct) {
+            const givenNorm = normalizeQuiz(given);
+            const corrNorm = normalizeQuiz(correct);
+            const givenFlex = normalizeQuizFlexible(given);
+            const corrFlex = normalizeQuizFlexible(correct);
+            const coreNorm = normalizeQuiz(String(correct || '').replace(/\s*\([^()]*\)\s*$/, ''));
+            return givenNorm !== '' && (givenNorm === corrNorm || givenFlex === corrFlex || givenNorm === coreNorm);
+        }
+
+        function collectDigitsToPaoAnswer() {
+            const vals = {};
+            QUIZ_PARTS.forEach(p => {
+                const selected = document.querySelector(`.quiz-option[data-part="${p}"].is-selected`);
+                if (selected) { vals[p] = selected.getAttribute('data-value'); return; }
+                const inp = document.getElementById(`quizPartInput_${p}`);
+                if (inp) vals[p] = inp.value;
+            });
+            return vals;
+        }
+
         // --- "Whole image" mode helpers -------------------------------------------
         function quizImageParts(num) {
             return {
@@ -1477,28 +1512,42 @@
             const newNums = [];
 
             if (task === 'digitsToPao') {
-                // Build pool of available numbers
-                const available = [];
+                // Eligible numbers: the selected pool, or all 00-99.
+                const eligible = [];
                 paoData.forEach(category => category.items.forEach(item => {
-                    const num = item.num;
-                    if (pool && !pool.includes(num)) return;
-                    available.push(num);
+                    if (pool && !pool.includes(item.num)) return;
+                    eligible.push(item.num);
                 }));
-                shuffle(available);
-                const selected = available.slice(0, size);
+                if (!eligible.length) paoData.forEach(c => c.items.forEach(it => eligible.push(it.num)));
+                const pick = () => eligible[Math.floor(Math.random() * eligible.length)];
+                const queue = [];
+                for (let i = 0; i < size; i++) {
+                    const pNum = pick();
+                    const aNum = pick();
+                    const oNum = pick();
+                    queue.push({
+                        num: pNum,
+                        pNum,
+                        aNum,
+                        oNum,
+                        digits: pNum + aNum + oNum,
+                        text: tripleText(pNum, aNum, oNum),
+                        fields: ['triple']
+                    });
+                }
                 quizSession = {
                     style: 'parts',
                     scope,
                     task,
-                    queue: selected.map(num => ({ num, digits: num + num, fields: ['person', 'action', 'object'] })),
+                    eligibleNums: eligible,
+                    queue,
                     pos: 0,
                     fieldIdx: 0,
                     answered: 0,
                     correct: 0,
-                    planned: selected.length,
+                    planned: queue.length,
                     locked: false
                 };
-                // better: for each, construct 6 digits as p+p? a+a? o+o? use the actual number's two digits repeated? Or just show 6 digits = num + num
                 renderQuiz();
                 return;
             }
@@ -1546,13 +1595,21 @@
             shuffle(dueNums);
             shuffle(newNums);
             const nums = dueNums.concat(newNums).slice(0, size);
-            const fields = (style === 'image' || style === 'fromimage') ? ['image'] : DUP_FIELDS.slice();
 
             quizSession = {
                 style,
                 scope,
                 task,
-                queue: nums.map(num => ({ num, fields: fields.slice() })),
+                // Shuffle the field order per number so each question starts with a
+                // random aspect (Person/Action/Object) instead of always Person.
+                queue: nums.map(num => {
+                    const isImage = (style === 'image' || style === 'fromimage');
+                    const isD2p = task === 'digitsToPao';
+                    if (isImage) return { num, fields: ['image'] };
+                    if (isD2p) return { num, fields: ['triple'] };
+                    const singleField = DUP_FIELDS[Math.floor(Math.random() * DUP_FIELDS.length)];
+                    return { num, fields: [singleField] };
+                }),
                 pos: 0,
                 fieldIdx: 0,
                 answered: 0,
@@ -1581,7 +1638,7 @@
             const numFromPicTask = task === 'numFromPic';
             let field;
             if (digitsToPao) {
-                field = entry.fields[quizSession.fieldIdx] || 'person';
+                field = 'triple';
             } else if (paoFromNum) {
                 field = entry.fields[quizSession.fieldIdx] || 'person';
             } else if (imageMode) {
@@ -1589,18 +1646,21 @@
             } else {
                 field = entry.fields[quizSession.fieldIdx];
             }
-            const correct = imageMode ? quizImageText(entry.num) : (paoFromNum ? entry.num : quizItemByNum(field, entry.num));
+            const correct = digitsToPao ? entry.text
+                : imageMode ? quizImageText(entry.num)
+                : (paoFromNum ? entry.num : quizItemByNum(field, entry.num));
             const state = quizStateFor(entry.num, (imageMode || digitsToPao) ? 'person' : field);
             const ansModeSetting = document.getElementById('quizAnswerMode') ? document.getElementById('quizAnswerMode').value : 'mc';
             const mode = (imageMode || digitsToPao || paoFromNum) ? ansModeSetting : quizModeFor(state);
-            const fieldLabel = digitsToPao ? '6 digits → ' + (QUIZ_FIELD_LABELS[field] || field)
+            const fieldLabel = digitsToPao ? '6 digits → P+A+O'
                              : paoFromNum ? 'P/A/O → Number'
                              : numFromPicTask ? 'Type number from picture'
                              : wholeImageMode ? 'Whole image'
                              : fromImageMode ? 'Number from image'
                              : QUIZ_FIELD_LABELS[field];
-            const prompt = digitsToPao ? `Given <b class="font-mono">${escapeHTML(entry.digits)}</b>, type the <b>${QUIZ_FIELD_LABELS[field] || field}</b>.`
-                         : paoFromNum ? `Given the <b>${QUIZ_FIELD_LABELS[field]}</b> "${escapeHTML(quizItemByNum(field, entry.num))}", what is the number?`
+            const paoValue = paoFromNum ? quizItemByNum(field, entry.num) : '';
+            const prompt = digitsToPao ? `What is the <span class="${PART_STYLES.person.text} font-semibold">Person</span>, <span class="${PART_STYLES.action.text} font-semibold">Action</span> and <span class="${PART_STYLES.object.text} font-semibold">Object</span>?`
+                         : paoFromNum ? `<span class="${PART_STYLES[field].text} font-bold text-xl">"${escapeHTML(paoValue)}"</span> <span class="text-slate-400 text-sm">(${QUIZ_FIELD_LABELS[field]})</span><span class="block mt-1.5">What is the number?</span>`
                          : numFromPicTask ? 'What number is this image?'
                          : wholeImageMode ? 'Which image belongs to this number?'
                          : fromImageMode ? 'What number is this image?'
@@ -1609,9 +1669,20 @@
             quizSession.locked = false;
             updateQuizStats();
 
-            // The number IS the question in "number from image" mode — never show it up front
-            const bigNumberHTML = (fromImageMode || digitsToPao || paoFromNum) ? ''
-                : `<div class="font-mono text-6xl font-bold text-indigo-600 my-5">${escapeHTML(entry.num)}</div>`;
+            // The number IS the question in "number from image" mode — never show it up front.
+            // In "6 digits -> P+A+O" the three 2-digit chunks are color-coded by type.
+            let bigNumberHTML = '';
+            if (digitsToPao) {
+                bigNumberHTML = `<div class="font-mono text-6xl font-bold my-5 flex items-center justify-center gap-3">` +
+                    `<span class="${PART_STYLES.person.text}">${escapeHTML(entry.pNum)}</span>` +
+                    `<span class="text-slate-300">·</span>` +
+                    `<span class="${PART_STYLES.action.text}">${escapeHTML(entry.aNum)}</span>` +
+                    `<span class="text-slate-300">·</span>` +
+                    `<span class="${PART_STYLES.object.text}">${escapeHTML(entry.oNum)}</span>` +
+                    `</div>`;
+            } else if (!fromImageMode && !paoFromNum) {
+                bigNumberHTML = `<div class="font-mono text-6xl font-bold text-indigo-600 my-5">${escapeHTML(entry.num)}</div>`;
+            }
 
             card.innerHTML = `
                 <div class="max-w-xl mx-auto text-center">
@@ -1626,27 +1697,64 @@
             const area = document.getElementById('quizAnswerArea');
             if (digitsToPao) {
                 const wrap = document.createElement('div');
-                wrap.className = 'flex flex-col items-center gap-4';
-                const inputWrap = document.createElement('div');
-                inputWrap.className = 'flex gap-3 justify-center items-center';
-                inputWrap.innerHTML = `
-                    <input id="quizTypeInput" type="text" autocomplete="off" spellcheck="false" placeholder="Type your answer…" list="paoDatalist"
-                        class="px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 sm:w-72">
-                    <datalist id="paoDatalist"></datalist>
-                    <button id="quizCheckBtn" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">Check</button>`;
-                wrap.appendChild(inputWrap);
-                area.appendChild(wrap);
-                const dl = document.getElementById('paoDatalist');
-                if (dl) {
-                    const vals = new Set();
-                    paoData.forEach(c => c.items.forEach(it => { vals.add(it[field]); }));
-                    Array.from(vals).forEach(v => { const opt = document.createElement('option'); opt.value = v; dl.appendChild(opt); });
-                }
-                const input = document.getElementById('quizTypeInput');
-                input.focus();
-                input.addEventListener('keydown', e => {
-                    if (e.key === 'Enter') { e.preventDefault(); submitQuizAnswer(input.value); }
+                wrap.className = 'space-y-4';
+                QUIZ_PARTS.forEach(part => {
+                    const st = PART_STYLES[part];
+                    const correctPart = quizItemByNum(part, entry[PART_NUM_KEY[part]]);
+                    const group = document.createElement('div');
+                    group.className = `rounded-lg border ${st.border} p-3 text-left`;
+                    const head = document.createElement('div');
+                    head.className = `text-xs font-bold uppercase tracking-wider ${st.text} mb-2`;
+                    head.textContent = st.label;
+                    group.appendChild(head);
+                    if (mode === 'mc') {
+                        const grid = document.createElement('div');
+                        grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2';
+                        quizOptions(part, correctPart, entry[PART_NUM_KEY[part]]).forEach((option, idx) => {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = `quiz-option quiz-part-option text-left px-3 py-2 rounded-lg border border-slate-200 bg-white ${st.hoverBg} ${st.hoverBorder} text-slate-700 text-sm transition flex items-center gap-2`;
+                            btn.setAttribute('data-part', part);
+                            btn.setAttribute('data-value', option);
+                            const numSpan = document.createElement('span');
+                            numSpan.className = 'inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-[10px] font-semibold text-slate-500';
+                            numSpan.textContent = String(idx + 1);
+                            btn.appendChild(numSpan);
+                            const txt = document.createElement('span');
+                            txt.textContent = option;
+                            btn.appendChild(txt);
+                            grid.appendChild(btn);
+                        });
+                        group.appendChild(grid);
+                    } else {
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.id = `quizPartInput_${part}`;
+                        input.setAttribute('data-part', part);
+                        input.setAttribute('autocomplete', 'off');
+                        input.setAttribute('spellcheck', 'false');
+                        input.setAttribute('list', `paoDatalist_${part}`);
+                        input.placeholder = `Type the ${st.label}…`;
+                        input.className = `w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 text-sm focus:outline-none ${st.focus}`;
+                        group.appendChild(input);
+                        const dl = document.createElement('datalist');
+                        dl.id = `paoDatalist_${part}`;
+                        const vals = new Set();
+                        paoData.forEach(c => c.items.forEach(it => vals.add(it[part])));
+                        vals.forEach(v => { const o = document.createElement('option'); o.value = v; dl.appendChild(o); });
+                        group.appendChild(dl);
+                    }
+                    wrap.appendChild(group);
                 });
+                const checkWrap = document.createElement('div');
+                checkWrap.className = 'flex justify-center pt-1';
+                checkWrap.innerHTML = `<button id="quizCheckBtn" type="button" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">Check</button>`;
+                wrap.appendChild(checkWrap);
+                area.appendChild(wrap);
+                if (mode !== 'mc') {
+                    const first = document.getElementById('quizPartInput_person');
+                    if (first) first.focus();
+                }
             } else if (paoFromNum) {
                 if (mode === 'mc') {
                     const grid = document.createElement('div');
@@ -1762,16 +1870,17 @@
             const imageMode = wholeImageMode || fromImageMode;
             const digitsToPao = quizSession.task === 'digitsToPao';
             let isCorrect, correctValue;
+            let partResults = null;
 
             if (digitsToPao) {
-                const field = entry.fields[quizSession.fieldIdx];
-                correctValue = quizItemByNum(field, entry.num);
-                const givenNorm = normalizeQuiz(given);
-                const corrNorm = normalizeQuiz(correctValue);
-                const givenFlex = normalizeQuizFlexible(given);
-                const corrFlex = normalizeQuizFlexible(correctValue);
-                const coreNorm = normalizeQuiz(String(correctValue || '').replace(/\s*\([^()]*\)\s*$/, ''));
-                isCorrect = givenNorm !== '' && (givenNorm === corrNorm || givenFlex === corrFlex || givenNorm === coreNorm);
+                correctValue = entry.text;
+                const givenVals = (given && typeof given === 'object') ? given : null;
+                partResults = {};
+                QUIZ_PARTS.forEach(p => {
+                    const g = givenVals ? (givenVals[p] || '') : String(given || '');
+                    partResults[p] = matchesQuizValue(g, quizItemByNum(p, entry[PART_NUM_KEY[p]]));
+                });
+                isCorrect = partResults.person && partResults.action && partResults.object;
             } else if (quizSession.task === 'paoFromNum') {
                 correctValue = entry.num;
                 const givenNorm = (given + '').replace(/\D+/g,'');
@@ -1802,8 +1911,10 @@
             const digitsToPaoSub = qtaskSub === 'digitsToPao';
 
             // Image modes or full picture modes grade all three aspects together
-            if (imageMode || digitsToPaoSub) {
+            if (imageMode) {
                 DUP_FIELDS.forEach(field => gradeQuizItem(quizStateFor(entry.num, field), isCorrect));
+            } else if (digitsToPaoSub && partResults) {
+                QUIZ_PARTS.forEach(p => gradeQuizItem(quizStateFor(entry[PART_NUM_KEY[p]], p), partResults[p]));
             } else if (quizSession.task === 'paoFromNum') {
                 DUP_FIELDS.forEach(field => gradeQuizItem(quizStateFor(entry.num, field), isCorrect));
             } else {
@@ -1825,11 +1936,11 @@
 
             if (!isCorrect) {
                 if (digitsToPaoSub) {
-                    quizSession.queue.push({ num: entry.num, fields: ['person', 'action', 'object'] });
+                    quizSession.queue.push({ ...entry });
                 } else if (quizSession.task === 'paoFromNum') {
-                    quizSession.queue.push({ num: entry.num, fields: ['person', 'action', 'object'] });
+                    quizSession.queue.push({ num: entry.num, fields: [DUP_FIELDS[Math.floor(Math.random()*DUP_FIELDS.length)]] });
                 } else {
-                    quizSession.queue.push({ num: entry.num, fields: imageMode ? ['image'] : [entry.fields[quizSession.fieldIdx]] });
+                    quizSession.queue.push({ num: entry.num, fields: imageMode ? ['image'] : [DUP_FIELDS[Math.floor(Math.random()*DUP_FIELDS.length)]] });
                 }
             }
 
@@ -1841,39 +1952,96 @@
             const feedback = document.getElementById('quizFeedback');
             if (!feedback) return;
 
-            feedback.innerHTML = isCorrect
-                ? `<div class="text-emerald-600 font-semibold flex items-center justify-center gap-2">${DUP_ICONS.check} Correct</div>`
-                : `<div class="text-rose-600 font-semibold">Not quite</div>
-                   <div class="text-sm text-slate-500 mt-1">Correct answer: <b class="text-slate-800">${escapeHTML(correctValue)}</b></div>`;
-
             const entry = quizSession ? quizSession.queue[quizSession.pos] : null;
             const imageMode = quizSession && quizSession.style === 'image';
             const qtask = quizSession ? (quizSession.task || 'recall') : 'recall';
 
-            document.querySelectorAll('.quiz-option').forEach(btn => {
-                const value = btn.getAttribute('data-value');
-                btn.disabled = true;
-                if (imageMode) {
-                    if (value === entry.num) btn.classList.add('border-emerald-400', 'bg-emerald-50');
-                    else if (!isCorrect && value === given) btn.classList.add('border-rose-400', 'bg-rose-50');
-                } else {
-                    const correctForField = quizItemByNum(entry.fields[quizSession.fieldIdx], entry.num);
-                    if (normalizeQuiz(value) === normalizeQuiz(correctForField)) {
+            if (qtask === 'digitsToPao' && entry) {
+                feedback.innerHTML = isCorrect
+                    ? `<div class="text-emerald-600 font-semibold flex items-center justify-center gap-2">${DUP_ICONS.check} Correct</div>`
+                    : `<div class="text-rose-600 font-semibold">Not quite</div>
+                       <div class="text-sm text-slate-500 mt-1">Correct answer: <span class="font-semibold"><span class="${PART_STYLES.person.text}">${escapeHTML(quizItemByNum('person', entry.pNum))}</span> · <span class="${PART_STYLES.action.text}">${escapeHTML(quizItemByNum('action', entry.aNum))}</span> · <span class="${PART_STYLES.object.text}">${escapeHTML(quizItemByNum('object', entry.oNum))}</span></span></div>`;
+            } else if (qtask === 'paoFromNum' && isCorrect && entry) {
+                const p = quizItemByNum('person', entry.num);
+                const a = quizItemByNum('action', entry.num);
+                const o = quizItemByNum('object', entry.num);
+                feedback.innerHTML = `<div class="text-emerald-600 font-semibold flex items-center justify-center gap-2">${DUP_ICONS.check} Correct</div>
+                    <div class="text-sm text-slate-500 mt-2 flex flex-col items-center">
+                        <span class="${PART_STYLES.person.text}">${escapeHTML(p)}</span>
+                        <span class="${PART_STYLES.action.text}">${escapeHTML(a)}</span>
+                        <span class="${PART_STYLES.object.text}">${escapeHTML(o)}</span>
+                    </div>`;
+            } else if ((qtask === 'recall' || !qtask) && isCorrect && entry) {
+                const f = entry.fields[0] || 'person';
+                const p = quizItemByNum('person', entry.num);
+                const a = quizItemByNum('action', entry.num);
+                const o = quizItemByNum('object', entry.num);
+                feedback.innerHTML = `<div class="text-emerald-600 font-semibold flex items-center justify-center gap-2">${DUP_ICONS.check} Correct (${QUIZ_FIELD_LABELS[f]})</div>
+                    <div class="text-sm text-slate-500 mt-2 flex flex-col items-center">
+                        <span class="${PART_STYLES.person.text}">${escapeHTML(p)}</span>
+                        <span class="${PART_STYLES.action.text}">${escapeHTML(a)}</span>
+                        <span class="${PART_STYLES.object.text}">${escapeHTML(o)}</span>
+                    </div>`;
+            } else {
+                feedback.innerHTML = isCorrect
+                    ? `<div class="text-emerald-600 font-semibold flex items-center justify-center gap-2">${DUP_ICONS.check} Correct</div>`
+                    : `<div class="text-rose-600 font-semibold">Not quite</div>
+                       <div class="text-sm text-slate-500 mt-1">Correct answer: <b class="text-slate-800">${escapeHTML(correctValue)}</b></div>`;
+            }
+
+            if (qtask === 'digitsToPao' && entry) {
+                document.querySelectorAll('.quiz-option[data-part]').forEach(btn => {
+                    const part = btn.getAttribute('data-part');
+                    const value = btn.getAttribute('data-value');
+                    const wasSelected = btn.classList.contains('is-selected');
+                    btn.disabled = true;
+                    // Clear the per-type selection styling so the result color wins.
+                    btn.classList.remove('is-selected');
+                    QUIZ_PARTS.forEach(p => {
+                        const st = PART_STYLES[p];
+                        btn.classList.remove(st.selBorder, st.selBg);
+                    });
+                    const correctPart = quizItemByNum(part, entry[PART_NUM_KEY[part]]);
+                    if (normalizeQuiz(value) === normalizeQuiz(correctPart)) {
                         btn.classList.add('border-emerald-400', 'bg-emerald-50');
-                    } else if (!isCorrect && normalizeQuiz(value) === normalizeQuiz(given)) {
+                    } else if (wasSelected) {
                         btn.classList.add('border-rose-400', 'bg-rose-50');
                     }
-                }
-            });
+                });
+                QUIZ_PARTS.forEach(p => {
+                    const inp = document.getElementById(`quizPartInput_${p}`);
+                    if (inp) {
+                        inp.disabled = true;
+                        const isC = matchesQuizValue(inp.value, quizItemByNum(p, entry[PART_NUM_KEY[p]]));
+                        inp.classList.add(isC ? 'border-emerald-400' : 'border-rose-400', isC ? 'bg-emerald-50' : 'bg-rose-50');
+                    }
+                });
+            } else {
+                document.querySelectorAll('.quiz-option').forEach(btn => {
+                    const value = btn.getAttribute('data-value');
+                    btn.disabled = true;
+                    if (imageMode) {
+                        if (value === entry.num) btn.classList.add('border-emerald-400', 'bg-emerald-50');
+                        else if (!isCorrect && value === given) btn.classList.add('border-rose-400', 'bg-rose-50');
+                    } else {
+                        const correctForField = quizItemByNum(entry.fields[quizSession.fieldIdx], entry.num);
+                        if (normalizeQuiz(value) === normalizeQuiz(correctForField)) {
+                            btn.classList.add('border-emerald-400', 'bg-emerald-50');
+                        } else if (!isCorrect && normalizeQuiz(value) === normalizeQuiz(given)) {
+                            btn.classList.add('border-rose-400', 'bg-rose-50');
+                        }
+                    }
+                });
 
-            // Typed input modes
-            const qtaskFb3 = quizSession ? (quizSession.task || 'recall') : 'recall';
-            if (quizSession && (quizSession.style === 'fromimage' || qtaskFb3 === 'numFromPic' || qtaskFb3 === 'digitsToPao' || qtaskFb3 === 'paoFromNum')) {
-                const input = document.getElementById('quizTypeInput');
-                if (input) {
-                    input.disabled = true;
-                    input.classList.add(isCorrect ? 'border-emerald-400' : 'border-rose-400',
-                                        isCorrect ? 'bg-emerald-50' : 'bg-rose-50');
+                // Typed input modes (non multi-part)
+                const qtaskFb3 = quizSession ? (quizSession.task || 'recall') : 'recall';
+                if (quizSession && (quizSession.style === 'fromimage' || qtaskFb3 === 'numFromPic' || qtaskFb3 === 'paoFromNum')) {
+                    const input = document.getElementById('quizTypeInput');
+                    if (input) {
+                        input.disabled = true;
+                        input.classList.add(isCorrect ? 'border-emerald-400' : 'border-rose-400',
+                                            isCorrect ? 'bg-emerald-50' : 'bg-rose-50');
+                    }
                 }
             }
 
@@ -1886,6 +2054,22 @@
 
         function nextQuizStep() {
             if (!quizSession) return;
+            const task = quizSession.task || 'recall';
+            if (task === 'recall' || task === 'paoFromNum') {
+                quizSession.pos++;
+                quizSession.fieldIdx = 0;
+                if (quizSession.pos < quizSession.queue.length) {
+                    const nums = quizSession.queue.map(q => q.num);
+                    shuffle(nums);
+                    const qnums = Array.from(new Set(nums));
+                    quizSession.queue = qnums.map(num => {
+                        if (task === 'paoFromNum') return { num, fields: ['person', 'action', 'object'][Math.floor(Math.random()*3)] };
+                        return { num, fields: DUP_FIELDS[Math.floor(Math.random()*DUP_FIELDS.length)] };
+                    });
+                }
+                renderQuiz();
+                return;
+            }
             const entry = quizSession.queue[quizSession.pos];
             if (!entry) return;
 
@@ -2083,8 +2267,8 @@
             const style = currentQuizStyle();
             const scope = currentQuizScope();
             const task = document.getElementById('quizTask') ? document.getElementById('quizTask').value : 'recall';
-            // Answer mode (adaptive/auto-typed) only applies to the "Parts" question style
-            document.getElementById('quizAnswerModeWrap').classList.toggle('hidden', style !== 'parts' || task !== 'recall');
+            // Answer type (multiple choice / typed) applies to every mode
+            document.getElementById('quizAnswerModeWrap').classList.remove('hidden');
             document.getElementById('quizPoolWrap').classList.toggle('hidden', scope !== 'selected');
             const grid = document.getElementById('quizModeGrid');
             if (grid) grid.classList.remove('hidden');
@@ -2122,11 +2306,30 @@
             if (currentQuizScope() === 'selected') startQuizSession();
         });
         document.getElementById('quizSessionSize').addEventListener('change', startQuizSession);
+        document.getElementById('quizAnswerMode').addEventListener('change', () => {
+            if (quizSession) startQuizSession();
+        });
 
         document.getElementById('quizCard').addEventListener('click', (e) => {
             const option = e.target.closest('.quiz-option');
-            if (option && !option.disabled) { submitQuizAnswer(option.getAttribute('data-value')); return; }
+            if (option && !option.disabled) {
+                if (option.classList.contains('quiz-part-option')) {
+                    const part = option.getAttribute('data-part');
+                    const st = PART_STYLES[part];
+                    document.querySelectorAll(`.quiz-option[data-part="${part}"]`).forEach(b => {
+                        b.classList.remove('is-selected', 'selected', 'border-indigo-500', 'bg-indigo-50', st.selBorder, st.selBg);
+                    });
+                    option.classList.add('is-selected', 'selected', st.selBorder, st.selBg);
+                    return;
+                }
+                submitQuizAnswer(option.getAttribute('data-value'));
+                return;
+            }
             if (e.target.closest('#quizCheckBtn')) {
+                if (quizSession && quizSession.task === 'digitsToPao') {
+                    submitQuizAnswer(collectDigitsToPaoAnswer());
+                    return;
+                }
                 const input = document.getElementById('quizTypeInput');
                 if (input) submitQuizAnswer(input.value);
                 return;
@@ -2148,16 +2351,57 @@
 
             if (e.key === 'Escape') { setPracticeMode(false); return; }
 
-            if (quizSession && quizSession.locked && e.key === 'Enter' && !isTyping) {
-                const next = document.getElementById('quizNextBtn');
-                if (next && !next.classList.contains('hidden')) { e.preventDefault(); nextQuizStep(); }
-                return;
+            if (quizSession && quizSession.task === 'digitsToPao' && e.key === 'Backspace' && !isTyping) {
+                const partsOrder = ['person', 'action', 'object'];
+                for (let i = partsOrder.length - 1; i >= 0; i--) {
+                    const p = partsOrder[i];
+                    const sel = document.querySelector(`.quiz-part-option[data-part="${p}"].selected`);
+                    if (sel) {
+                        e.preventDefault();
+                        sel.classList.remove('is-selected', 'selected', 'border-indigo-500', 'bg-indigo-50');
+                        const st = PART_STYLES[p];
+                        if (st) { sel.classList.remove(st.selBorder, st.selBg); }
+                        return;
+                    }
+                }
+            }
+
+            if (e.key === 'Enter' && !isTyping && quizSession) {
+                if (quizSession.locked) {
+                    const next = document.getElementById('quizNextBtn');
+                    if (next && !next.classList.contains('hidden')) { e.preventDefault(); nextQuizStep(); return; }
+                } else if (quizSession.task === 'digitsToPao') {
+                    const area = document.getElementById('quizAnswerArea');
+                    if (area) {
+                        const partsOrder = ['person', 'action', 'object'];
+                        const allSelected = partsOrder.every(p => area.querySelector(`.quiz-part-option[data-part="${p}"].selected`));
+                        if (allSelected) {
+                            e.preventDefault();
+                            submitQuizAnswer(collectDigitsToPaoAnswer());
+                            return;
+                        }
+                    }
+                }
             }
 
             if (/^[1-4]$/.test(e.key) && !isTyping) {
-                const options = document.querySelectorAll('.quiz-option:not(:disabled)');
-                const picked = options[parseInt(e.key, 10) - 1];
-                if (picked) { e.preventDefault(); submitQuizAnswer(picked.getAttribute('data-value')); }
+                const n = parseInt(e.key, 10);
+                const d2p = quizSession && quizSession.task === 'digitsToPao';
+                if (d2p) {
+                    const partsOrder = ['person', 'action', 'object'];
+                    for (let i = 0; i < partsOrder.length; i++) {
+                        const p = partsOrder[i];
+                        const btns = Array.from(document.querySelectorAll(`.quiz-part-option[data-part="${p}"]`));
+                        if (btns.length && !btns.some(b => b.classList.contains('selected'))) {
+                            const picked = btns[n - 1];
+                            if (picked && !picked.disabled) { e.preventDefault(); picked.click(); break; }
+                        }
+                    }
+                } else {
+                    const options = document.querySelectorAll('.quiz-option:not(:disabled)');
+                    const picked = options[n - 1];
+                    if (picked) { e.preventDefault(); submitQuizAnswer(picked.getAttribute('data-value')); }
+                }
             }
         });
 
