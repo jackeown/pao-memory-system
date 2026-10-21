@@ -63,9 +63,14 @@
             <div>
                 <h1 class="text-2xl font-bold tracking-tight">PAO Memory System Studio</h1>
                 <p class="text-indigo-200 text-sm">Organize & memorize numbers 00–99 using Person-Action-Object categories</p>
+                <div class="flex flex-wrap items-center gap-2 mt-2 text-xs">
+                    <button type="button" class="digit-const-btn px-2 py-1 rounded bg-white/20 hover:bg-white/30" data-const="pi">π</button>
+                    <button type="button" class="digit-const-btn px-2 py-1 rounded bg-white/20 hover:bg-white/30" data-const="e">e</button>
+                    <button type="button" class="digit-const-btn px-2 py-1 rounded bg-white/20 hover:bg-white/30" data-const="sqrt2">√2</button>
+                    <button type="button" class="digit-const-btn px-2 py-1 rounded bg-white/20 hover:bg-white/30" data-const="phi">φ</button>
+                </div>
             </div>
             <div class="flex items-center gap-3 w-full sm:w-auto">
-                <!-- Gallery removed -->
                 <button id="themeBtn" type="button" title="Theme: system"
                     class="bg-white/90 hover:bg-white text-slate-700 text-base leading-none px-2.5 py-2 rounded-lg transition shadow-sm" aria-label="Change colour theme">🖥️</button>
                 <input type="text" id="globalSearch" placeholder="Search number, person, action, object..." 
@@ -198,6 +203,20 @@
         <div id="categoriesContainer" class="space-y-4">
             <!-- Dynamically populated via JavaScript -->
         </div>
+
+        <!-- Constant Digits View -->
+        <section id="constDigitsView" class="hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-800" id="constTitle">Constants</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">PAO images for digits in order</p>
+                    </div>
+                    <button id="constExitBtn" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition">Back to main</button>
+                </div>
+                <div id="constDigitsGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3"></div>
+            </div>
+        </section>
 
     </main>
 
@@ -2262,6 +2281,45 @@
         document.getElementById('quizExitBtn').addEventListener('click', () => setPracticeMode(false));
         document.getElementById('quizRestartBtn').addEventListener('click', startQuizSession);
         document.getElementById('quizResetProgressBtn').addEventListener('click', resetQuizProgress);
+
+        // Constant digits
+        const CONSTS = {
+            pi: "1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679",
+            e: "2718281828459045235360287471352662497757247093699959574966967627724076630353547594571382178525166427",
+            sqrt2: "1414213562373095048801688724209698078569671875376948073176679737990732478462107038850387534327641573",
+            phi: "1618033988749894848204586834365638117720309179805762862135448622705260462818902449707207204189391137"
+        };
+        document.querySelectorAll('.digit-const-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.getAttribute('data-const');
+                const digits = (CONSTS[key] || '').repeat(4).substring(0, 1000);
+                document.getElementById('constTitle').textContent = btn.textContent + ' digits';
+                const grid = document.getElementById('constDigitsGrid');
+                grid.innerHTML = '';
+                for (let i = 0; i < digits.length; i += 2) {
+                    const num = digits.substr(i, 2);
+                    const card = document.createElement('div');
+                    card.className = 'border border-slate-200 rounded-lg p-2 text-center bg-white';
+                    const img = document.createElement('img');
+                    img.src = `images/${num}.png`;
+                    img.alt = num;
+                    img.className = 'w-full h-24 object-cover rounded mb-1';
+                    img.onerror = function(){ this.style.display='none'; };
+                    const label = document.createElement('div');
+                    label.className = 'text-xs font-mono font-semibold text-slate-700';
+                    label.textContent = num;
+                    card.appendChild(img);
+                    card.appendChild(label);
+                    grid.appendChild(card);
+                }
+                document.querySelectorAll('main section').forEach(s => { if (s.id !== 'constDigitsView') s.classList.add('hidden'); });
+                document.getElementById('constDigitsView').classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+        document.getElementById('constExitBtn').addEventListener('click', () => {
+            document.getElementById('constDigitsView').classList.add('hidden');
+        });
 
         function refreshQuizControls() {
             const style = currentQuizStyle();
