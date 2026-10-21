@@ -165,6 +165,12 @@
                 <input type="text" id="digitInput" inputmode="numeric" autocomplete="off"
                     placeholder="Type digits — every 6 becomes one picture (e.g. 274803)"
                     class="px-3 py-2 rounded-lg text-slate-800 bg-slate-50 border border-slate-200 placeholder-slate-400 placeholder-font-normal text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 w-full sm:w-80 font-mono tracking-widest">
+                <div class="flex flex-wrap items-center gap-1">
+                    <button type="button" class="const-fill-btn px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200" data-const="pi">π</button>
+                    <button type="button" class="const-fill-btn px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200" data-const="e">e</button>
+                    <button type="button" class="const-fill-btn px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200" data-const="sqrt2">√2</button>
+                    <button type="button" class="const-fill-btn px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200" data-const="phi">φ</button>
+                </div>
                 <span id="digitMeta" class="text-xs text-slate-400"></span>
             </div>
             <div id="digitOutput" class="mt-4 space-y-2"></div>
@@ -2289,32 +2295,28 @@
             sqrt2: "1414213562373095048801688724209698078569671875376948073176679737990732478462107038850387534327641573",
             phi: "1618033988749894848204586834365638117720309179805762862135448622705260462818902449707207204189391137"
         };
+        document.querySelectorAll('.const-fill-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.getAttribute('data-const');
+                const digits = (CONSTS[key] || '').repeat(4).substring(0, 1000);
+                const input = document.getElementById('digitInput');
+                if (input) {
+                    input.value = digits;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+        });
         document.querySelectorAll('.digit-const-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const key = btn.getAttribute('data-const');
                 const digits = (CONSTS[key] || '').repeat(4).substring(0, 1000);
-                document.getElementById('constTitle').textContent = btn.textContent + ' digits';
-                const grid = document.getElementById('constDigitsGrid');
-                grid.innerHTML = '';
-                for (let i = 0; i < digits.length; i += 2) {
-                    const num = digits.substr(i, 2);
-                    const card = document.createElement('div');
-                    card.className = 'border border-slate-200 rounded-lg p-2 text-center bg-white';
-                    const img = document.createElement('img');
-                    img.src = `images/${num}.png`;
-                    img.alt = num;
-                    img.className = 'w-full h-24 object-cover rounded mb-1';
-                    img.onerror = function(){ this.style.display='none'; };
-                    const label = document.createElement('div');
-                    label.className = 'text-xs font-mono font-semibold text-slate-700';
-                    label.textContent = num;
-                    card.appendChild(img);
-                    card.appendChild(label);
-                    grid.appendChild(card);
+                const input = document.getElementById('digitInput');
+                if (input) {
+                    input.value = digits;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    const conv = document.getElementById('converterCard');
+                    if (conv) conv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
-                document.querySelectorAll('main section').forEach(s => { if (s.id !== 'constDigitsView') s.classList.add('hidden'); });
-                document.getElementById('constDigitsView').classList.remove('hidden');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
             });
         });
         document.getElementById('constExitBtn').addEventListener('click', () => {
