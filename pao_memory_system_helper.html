@@ -1552,6 +1552,11 @@
             return (value.replace(/\D/g, '').match(/.{1,6}/g) || []).join(' ');
         }
 
+        function digitImageCount(length) {
+            const count = Math.ceil(length / 6);
+            return `${count} image${count === 1 ? '' : 's'}`;
+        }
+
         function highlightDigitPairs(value) {
             let index = 0;
             return Array.from(value, character => {
@@ -1664,7 +1669,7 @@
                 card.innerHTML = `<div class="max-w-2xl mx-auto space-y-4">
                     <h3 class="text-xl font-bold text-slate-800">Round over</h3>
                     <p class="text-lg font-semibold text-indigo-600">${s.points} points · Recall score: ${score}%</p>
-                    <p class="text-sm text-slate-600">${s.leadingCorrect} correct digits from the start of this answer out of ${s.requested || s.target} requested. You completed ${s.mastered} digits before this round.</p>
+                    <p class="text-sm text-slate-600">${s.leadingCorrect} correct digits from the start of this answer out of ${s.requested || s.target} requested (${digitImageCount(s.requested || s.target)}). You completed ${s.mastered} digits (${digitImageCount(s.mastered)}) before this round.</p>
                     <p class="text-sm text-slate-500">Continue to study and retry this round with your points intact, or start the same sequence again from the first scene with a fresh score.</p>
                     <div class="flex flex-wrap gap-3">
                         <button id="questResume" type="button" class="${buttonClass}">Continue this round</button>
@@ -1689,12 +1694,12 @@
             const prefix = s.digits.slice(roundStart, s.target);
             card.innerHTML = `<div class="max-w-2xl mx-auto space-y-4">
                 <h3 class="text-xl font-bold text-slate-800">${complete ? 'Quest complete!' : `Digit Quest · Round ${Math.ceil(s.target / 6)}`}</h3>
-                <p class="text-sm text-slate-500">${s.mastered}/${s.digits.length} digits recalled · ${s.points} points · streak ${s.streak}</p>
+                <p class="text-sm text-slate-500">${s.mastered}/${s.digits.length} digits recalled (${Math.ceil(s.mastered / 6)}/${digitImageCount(s.digits.length)}) · ${s.points} points · streak ${s.streak}</p>
                 <progress class="w-full h-3" max="${s.digits.length}" value="${s.mastered}" aria-label="Digits recalled"></progress>
                 <p class="text-xs text-slate-500">${s.continuation ? 'Scene-by-scene recall · previous scene cue enabled' : 'Full-chain recall'}</p>
                 ${!complete && s.phase === 'study' ? `<label class="block text-sm text-slate-700"><input id="questContinuation" type="checkbox" class="mr-2" ${s.continuation ? 'checked' : ''}>Continue from last scene</label>` : ''}
                 ${roundStart ? `<p class="text-sm text-slate-500">Last completed scene (${Math.ceil(roundStart / 6)}): <span class="font-mono">${highlightDigitPairs(s.digits.slice(Math.max(0, roundStart - 6), roundStart))}</span> → continue with digits ${roundStart + 1}–${s.target}.</p>` : ''}
-                <p class="text-sm text-slate-600">${complete ? (s.continuation ? 'You recalled every scene in order! Try full-chain recall next to strengthen the sequence.' : 'You recalled the entire sequence! Play again to strengthen the chain.') : s.phase === 'study' ? `Study digits ${roundStart + 1}–${s.target} and imagine these scenes in order.` : `Recall ${prefix.length} digits${roundStart ? ` starting at position ${roundStart + 1}` : ' from the beginning'}. Spaces are added automatically.`}</p>
+                <p class="text-sm text-slate-600">${complete ? (s.continuation ? 'You recalled every scene in order! Try full-chain recall next to strengthen the sequence.' : 'You recalled the entire sequence! Play again to strengthen the chain.') : s.phase === 'study' ? `Study digits ${roundStart + 1}–${s.target} (${digitImageCount(prefix.length)}) and imagine these scenes in order.` : `Recall ${prefix.length} digits (${digitImageCount(prefix.length)})${roundStart ? ` starting at position ${roundStart + 1}` : ' from the beginning'}. Spaces are added automatically.`}</p>
                 <div id="questScenes" class="space-y-2 ${s.phase === 'recall' ? 'hidden' : ''}">${s.phase === 'recall' ? '' : digitQuestScenes(prefix, roundStart)}</div>
                 ${s.phase === 'recall' ? `<form id="questForm" class="space-y-3"><label for="questAnswer" class="block text-sm font-semibold text-slate-700">Your recalled digits</label><textarea id="questAnswer" rows="3" inputmode="numeric" autocomplete="off" spellcheck="false" class="w-full rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-sm text-slate-800"></textarea><div class="flex flex-wrap gap-3"><button class="${buttonClass}" type="submit">Check · Enter</button><button id="questHint" class="text-sm text-indigo-600 underline" type="button">Show PAO hint</button></div></form>` : ''}
                 <p id="questFeedback" class="text-sm text-slate-600" role="status"></p>
@@ -2350,7 +2355,7 @@
                 ? `${Math.round((m.correct / m.answered) * 100)}% (${m.correct}/${m.answered})`
                 : '–';
             document.getElementById('quizStatProgress').textContent = quizSession && quizSession.task === 'digitQuest'
-                ? `${quizSession.mastered || 0}/${(quizSession.digits || '').length} digits recalled`
+                ? `${quizSession.mastered || 0}/${(quizSession.digits || '').length} digits recalled (${Math.ceil((quizSession.mastered || 0) / 6)}/${digitImageCount((quizSession.digits || '').length)})`
                 : quizSession
                 ? `${quizSession.answered} answered · ${Math.max(0, quizSession.queue.length - quizSession.pos)} left`
                 : '–';
