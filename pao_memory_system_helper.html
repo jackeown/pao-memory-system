@@ -139,12 +139,12 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-x-5 gap-y-1 mt-4 text-xs font-medium">
-                    <span class="text-slate-500">Due: <b id="quizStatDue" class="text-amber-600">–</b></span>
-                    <span class="text-slate-500">New: <b id="quizStatNew" class="text-slate-700">–</b></span>
-                    <span class="text-slate-500">Learning: <b id="quizStatLearning" class="text-rose-600">–</b></span>
-                    <span class="text-slate-500">Mature: <b id="quizStatMature" class="text-emerald-600">–</b></span>
-                    <span class="text-slate-500">Accuracy (<span id="quizStatModeLabel">mode</span>): <b id="quizStatAccuracy" class="text-slate-700">–</b></span>
-                    <span class="text-slate-500">This session: <b id="quizStatProgress" class="text-slate-700">–</b></span>
+                    <span class="text-slate-500 cursor-help" tabindex="0" title="Due: Previously practiced Person, Action, or Object entries whose scheduled review time has passed. Due overlaps Learning and Mature; new entries are not counted as due.">Due: <b id="quizStatDue" class="text-amber-600">–</b></span>
+                    <span class="text-slate-500 cursor-help" tabindex="0" title="New: Person, Action, or Object entries never graded. Each of the 100 numbers has three separate entries, so 300 is the starting total. Showing the full PAO in feedback does not count as practicing all three.">New: <b id="quizStatNew" class="text-slate-700">–</b></span>
+                    <span class="text-slate-500 cursor-help" tabindex="0" title="Learning: Entries graded at least once with a scheduled review interval under 21 days. A correct first answer schedules a review in 1 day; an incorrect answer schedules one in 10 minutes. Learning includes entries that are due.">Learning: <b id="quizStatLearning" class="text-rose-600">–</b></span>
+                    <span class="text-slate-500 cursor-help" tabindex="0" title="Mature: Practiced entries with a review interval of at least 21 days. This takes several successful reviews of the same Person, Action, or Object entry. Mature entries can also be due.">Mature: <b id="quizStatMature" class="text-emerald-600">–</b></span>
+                    <span class="text-slate-500 cursor-help" tabindex="0" title="Accuracy: Correct answers divided by total answers for the selected practice mode, across all sessions on this browser. Wrong answers that are retried count again when answered again.">Accuracy (<span id="quizStatModeLabel">mode</span>): <b id="quizStatAccuracy" class="text-slate-700">–</b></span>
+                    <span class="text-slate-500 cursor-help" tabindex="0" title="This session: Questions answered so far and questions remaining in this run. Incorrect answers are added back to the queue for another try, so the remaining count can grow.">This session: <b id="quizStatProgress" class="text-slate-700">–</b></span>
                     <button id="quizStatsInfoBtn" type="button" class="text-slate-400 hover:text-slate-700" title="Explain stats">?</button>
                 </div>
             </div>
@@ -252,12 +252,13 @@
                 <button id="quizStatsModalClose" class="text-slate-400 hover:text-slate-700 text-2xl leading-none px-1 -mt-1" aria-label="Close">&times;</button>
             </div>
             <div class="px-5 py-4 text-sm text-slate-700 space-y-2">
-                <div><b>Due</b> – Items scheduled to review now.</div>
-                <div><b>New</b> – Items never practiced.</div>
-                <div><b>Learning</b> – Being learned (short intervals).</div>
-                <div><b>Mature</b> – Stable with longer intervals.</div>
-                <div><b>Accuracy (mode)</b> – Correct/total for the currently selected practice mode, saved separately per mode.</div>
-                <div><b>This session</b> – How many answered / left in this run.</div>
+                <div>Counts are per Person, Action, or Object entry: 100 numbers × 3 = 300. New + Learning + Mature = 300.</div>
+                <div><b>Due</b> – Practiced entries scheduled for review now. Overlaps Learning and Mature.</div>
+                <div><b>New</b> – Entries never graded; seeing the full PAO in feedback doesn't grade the other parts.</div>
+                <div><b>Learning</b> – Practiced entries with a review interval shorter than 21 days. Correct first answers return in 1 day; incorrect answers in 10 minutes.</div>
+                <div><b>Mature</b> – Practiced entries with a review interval of at least 21 days.</div>
+                <div><b>Accuracy (mode)</b> – Correct/total answers in the selected mode across sessions, including retries.</div>
+                <div><b>This session</b> – Answers submitted and questions remaining; misses are queued for another try.</div>
             </div>
         </div>
     </div>
@@ -1619,8 +1620,8 @@
                 style,
                 scope,
                 task,
-                // Shuffle the field order per number so each question starts with a
-                // random aspect (Person/Action/Object) instead of always Person.
+                // Ask one randomly chosen aspect per number; the number queue is
+                // already shuffled above.
                 queue: nums.map(num => {
                     const isImage = (style === 'image' || style === 'fromimage');
                     const isD2p = task === 'digitsToPao';
@@ -1935,7 +1936,7 @@
             } else if (digitsToPaoSub && partResults) {
                 QUIZ_PARTS.forEach(p => gradeQuizItem(quizStateFor(entry[PART_NUM_KEY[p]], p), partResults[p]));
             } else if (quizSession.task === 'paoFromNum') {
-                DUP_FIELDS.forEach(field => gradeQuizItem(quizStateFor(entry.num, field), isCorrect));
+                gradeQuizItem(quizStateFor(entry.num, entry.fields[quizSession.fieldIdx]), isCorrect);
             } else {
                 gradeQuizItem(quizStateFor(entry.num, entry.fields[quizSession.fieldIdx]), isCorrect);
             }
@@ -1980,26 +1981,15 @@
                     ? `<div class="text-emerald-600 font-semibold flex items-center justify-center gap-2">${DUP_ICONS.check} Correct</div>`
                     : `<div class="text-rose-600 font-semibold">Not quite</div>
                        <div class="text-sm text-slate-500 mt-1">Correct answer: <span class="font-semibold"><span class="${PART_STYLES.person.text}">${escapeHTML(quizItemByNum('person', entry.pNum))}</span> · <span class="${PART_STYLES.action.text}">${escapeHTML(quizItemByNum('action', entry.aNum))}</span> · <span class="${PART_STYLES.object.text}">${escapeHTML(quizItemByNum('object', entry.oNum))}</span></span></div>`;
-            } else if (qtask === 'paoFromNum' && isCorrect && entry) {
-                const p = quizItemByNum('person', entry.num);
-                const a = quizItemByNum('action', entry.num);
-                const o = quizItemByNum('object', entry.num);
-                feedback.innerHTML = `<div class="text-emerald-600 font-semibold flex items-center justify-center gap-2">${DUP_ICONS.check} Correct</div>
+            } else if ((qtask === 'paoFromNum' || qtask === 'recall') && entry) {
+                const field = entry.fields[quizSession.fieldIdx];
+                const answer = qtask === 'paoFromNum' ? entry.num : quizItemByNum(field, entry.num);
+                feedback.innerHTML = `<div class="${isCorrect ? 'text-emerald-600' : 'text-rose-600'} font-semibold flex items-center justify-center gap-2">${isCorrect ? `${DUP_ICONS.check} Correct` : 'Not quite'}</div>
+                    ${isCorrect ? '' : `<div class="text-sm text-slate-500 mt-1">Correct answer: <b class="text-slate-800">${escapeHTML(answer)}</b></div>`}
                     <div class="text-sm text-slate-500 mt-2 flex flex-col items-center">
-                        <span class="${PART_STYLES.person.text}">${escapeHTML(p)}</span>
-                        <span class="${PART_STYLES.action.text}">${escapeHTML(a)}</span>
-                        <span class="${PART_STYLES.object.text}">${escapeHTML(o)}</span>
-                    </div>`;
-            } else if ((qtask === 'recall' || !qtask) && isCorrect && entry) {
-                const f = entry.fields[0] || 'person';
-                const p = quizItemByNum('person', entry.num);
-                const a = quizItemByNum('action', entry.num);
-                const o = quizItemByNum('object', entry.num);
-                feedback.innerHTML = `<div class="text-emerald-600 font-semibold flex items-center justify-center gap-2">${DUP_ICONS.check} Correct (${QUIZ_FIELD_LABELS[f]})</div>
-                    <div class="text-sm text-slate-500 mt-2 flex flex-col items-center">
-                        <span class="${PART_STYLES.person.text}">${escapeHTML(p)}</span>
-                        <span class="${PART_STYLES.action.text}">${escapeHTML(a)}</span>
-                        <span class="${PART_STYLES.object.text}">${escapeHTML(o)}</span>
+                        <span class="${PART_STYLES.person.text}">${escapeHTML(quizItemByNum('person', entry.num))}</span>
+                        <span class="${PART_STYLES.action.text}">${escapeHTML(quizItemByNum('action', entry.num))}</span>
+                        <span class="${PART_STYLES.object.text}">${escapeHTML(quizItemByNum('object', entry.num))}</span>
                     </div>`;
             } else {
                 feedback.innerHTML = isCorrect
@@ -2073,22 +2063,6 @@
 
         function nextQuizStep() {
             if (!quizSession) return;
-            const task = quizSession.task || 'recall';
-            if (task === 'recall' || task === 'paoFromNum') {
-                quizSession.pos++;
-                quizSession.fieldIdx = 0;
-                if (quizSession.pos < quizSession.queue.length) {
-                    const nums = quizSession.queue.map(q => q.num);
-                    shuffle(nums);
-                    const qnums = Array.from(new Set(nums));
-                    quizSession.queue = qnums.map(num => {
-                        if (task === 'paoFromNum') return { num, fields: ['person', 'action', 'object'][Math.floor(Math.random()*3)] };
-                        return { num, fields: DUP_FIELDS[Math.floor(Math.random()*DUP_FIELDS.length)] };
-                    });
-                }
-                renderQuiz();
-                return;
-            }
             const entry = quizSession.queue[quizSession.pos];
             if (!entry) return;
 
@@ -2096,6 +2070,17 @@
             if (quizSession.fieldIdx >= entry.fields.length) {
                 quizSession.fieldIdx = 0;
                 quizSession.pos++;
+                // A missed card is retried later; avoid presenting the same
+                // number twice in a row when the remaining queue allows it.
+                if (quizSession.pos < quizSession.queue.length - 1 &&
+                    quizSession.queue[quizSession.pos].num === entry.num) {
+                    const next = quizSession.queue.findIndex((item, index) =>
+                        index > quizSession.pos && item.num !== entry.num);
+                    if (next !== -1) {
+                        [quizSession.queue[quizSession.pos], quizSession.queue[next]] =
+                            [quizSession.queue[next], quizSession.queue[quizSession.pos]];
+                    }
+                }
             }
             renderQuiz();
         }
