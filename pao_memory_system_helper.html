@@ -53,6 +53,25 @@
         }
         .drag-handle:active { cursor: grabbing; }
         .drag-handle:focus-visible { box-shadow: 0 0 0 2px #6366f1; }
+        .digit-editor { position: relative; }
+        .digit-editor textarea,
+        .digit-editor-highlight {
+            margin: 0; padding: 0.75rem; border: 1px solid transparent;
+            font-family: monospace; font-size: 0.875rem; line-height: 1.5rem;
+            letter-spacing: normal; white-space: pre-wrap;
+            overflow-wrap: anywhere; word-break: break-all;
+            box-sizing: border-box; tab-size: 8;
+        }
+        .digit-editor-highlight {
+            position: absolute; inset: 0; overflow: hidden;
+            pointer-events: none; border-radius: 0.5rem;
+        }
+        .digit-editor textarea {
+            position: relative; display: block; width: 100%;
+            background: transparent !important; color: transparent !important;
+            -webkit-text-fill-color: transparent; caret-color: #6366f1;
+        }
+        .digit-editor textarea::placeholder { -webkit-text-fill-color: #94a3b8; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -126,7 +145,7 @@
                     </div>
                 </div>
 
-                <div id="quizModeGrid" class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div id="quizModeGrid" class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                     <button type="button" class="quiz-mode-btn p-2 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-center transition" data-task="paoFromNum" data-style="parts">
                         <div class="text-sm font-semibold text-slate-800">P/A/O → Number</div>
                     </button>
@@ -135,6 +154,9 @@
                     </button>
                     <button type="button" class="quiz-mode-btn p-2 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-center transition" data-task="digitsToPao">
                         <div class="text-sm font-semibold text-slate-800">6 digits → P+A+O</div>
+                    </button>
+                    <button type="button" class="quiz-mode-btn p-2 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-center transition" data-task="digitQuest">
+                        <div class="text-sm font-semibold text-slate-800">Digit Quest</div>
                     </button>
                 </div>
 
@@ -1191,6 +1213,7 @@
             const style = document.getElementById('quizStyle') ? document.getElementById('quizStyle').value : 'parts';
             if (task === 'numFromPic') return 'numFromPic';
             if (task === 'digitsToPao') return 'digitsToPao';
+            if (task === 'digitQuest') return 'digitQuest';
             if (task === 'paoFromNum') return 'paoFromNum';
             return task + ':' + style;
         }
@@ -1521,7 +1544,234 @@
             return Array.from(numsSet);
         }
 
+        // Digit Quest trains cumulative recall of the user's sequence, rather
+        // than grading individual PAO associations in the review schedule.
+        let digitQuestSource = '';
+
+        function formatSceneDigits(value) {
+            return (value.replace(/\D/g, '').match(/.{1,6}/g) || []).join(' ');
+        }
+
+        function highlightDigitPairs(value) {
+            let index = 0;
+            return Array.from(value, character => {
+                if (!/[0-9]/.test(character)) return escapeHTML(character);
+                const part = ['person', 'action', 'object'][Math.floor(index++ / 2) % 3];
+                return `<span class="${PART_STYLES[part].text}">${character}</span>`;
+            }).join('');
+        }
+
+        function attachDigitHighlighting(input) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'digit-editor bg-slate-50 rounded-lg';
+            const highlight = document.createElement('pre');
+            highlight.className = 'digit-editor-highlight';
+            highlight.setAttribute('aria-hidden', 'true');
+            input.before(wrapper);
+            wrapper.append(highlight, input);
+            const sync = () => {
+                highlight.innerHTML = highlightDigitPairs(input.value) + '\n';
+                highlight.scrollTop = input.scrollTop;
+                highlight.scrollLeft = input.scrollLeft;
+            };
+            const format = () => {
+                const start = input.value.slice(0, input.selectionStart).replace(/\D/g, '').length;
+                const end = input.value.slice(0, input.selectionEnd).replace(/\D/g, '').length;
+                input.value = formatSceneDigits(input.value);
+                const position = n => n + Math.floor(Math.max(0, n - 1) / 6);
+                input.setSelectionRange(position(start), position(end));
+                sync();
+            };
+            input.addEventListener('input', format);
+            input.addEventListener('beforeinput', event => {
+                const position = input.selectionStart;
+                if (input.selectionEnd !== position) return;
+                const backward = event.inputType === 'deleteContentBackward' && input.value[position - 1] === ' ';
+                const forward = event.inputType === 'deleteContentForward' && input.value[position] === ' ';
+                if (!backward && !forward) return;
+                event.preventDefault();
+                input.setRangeText('', backward ? position - 2 : position,
+                    backward ? position : position + 2, 'end');
+                format();
+            });
+            input.addEventListener('scroll', sync);
+            format();
+        }
+
+        function digitQuestScenes(digits, offset = 0) {
+            const lookup = buildPAOLookup();
+            const scenes = [];
+            for (let i = 0; i < digits.length; i += 6) {
+                const chunk = digits.slice(i, i + 6);
+                const parts = ['person', 'action', 'object'].map((part, index) => {
+                    const pair = chunk.slice(index * 2, index * 2 + 2);
+                    if (!pair) return '';
+                    const description = pair.length === 2 ? lookup[part][pair] || '?' : `Remember the final digit ${pair}`;
+                    return `<span class="${PART_STYLES[part].text}">${escapeHTML(pair)} · ${escapeHTML(description)}</span>`;
+                }).filter(Boolean);
+                scenes.push(`<div class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-left"><div class="text-xs text-slate-400 mb-1">Scene ${(i + offset) / 6 + 1} · digits ${i + offset + 1}–${i + offset + chunk.length}</div><div class="flex flex-wrap gap-x-3 gap-y-1 text-sm font-semibold">${parts.join('')}</div></div>`);
+            }
+            return scenes.join('');
+        }
+
+        function renderDigitQuest() {
+            const s = quizSession;
+            const card = document.getElementById('quizCard');
+            const buttonClass = 'px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold';
+            if (s.phase === 'setup') {
+                card.innerHTML = `<div class="max-w-2xl mx-auto space-y-4">
+                    <h3 class="text-xl font-bold text-slate-800">Digit Quest</h3>
+                    <p class="text-sm text-slate-500">Build a memory chain: study one six-digit PAO scene, hide it, and recall the digits. Each win adds another scene. Recall the whole chain from the start each round.</p>
+                    <label class="block text-sm font-semibold text-slate-700" for="questSource">Your sequence (up to 1000 digits)</label>
+                    <div class="flex flex-wrap items-center gap-2" aria-label="Constant shortcuts">
+                        <span class="text-xs text-slate-500">Load 1,000 digits:</span>
+                        ${[['pi', 'π'], ['e', 'e'], ['sqrt2', '√2'], ['phi', 'φ']].map(([key, label]) => `<button type="button" data-quest-constant="${key}" class="px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-semibold text-slate-700">${label}</button>`).join('')}
+                    </div>
+                    <textarea id="questSource" rows="4" class="w-full rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-sm text-slate-800" placeholder="Paste digits, or copy your sequence from Digits → Pictures"></textarea>
+                    <p class="text-xs"><span class="text-indigo-600">Person (2 digits)</span> · <span class="text-rose-600">Action (2 digits)</span> · <span class="text-emerald-600">Object (2 digits)</span> · repeat</p>
+                    <p class="text-xs text-slate-500">Spaces and decimal points are ignored. Short final scenes are kept exactly as entered, without padding.</p>
+                    <label class="block text-sm text-slate-700"><input id="questContinuation" type="checkbox" class="mr-2">Continue from last scene</label>
+                    <p class="text-xs text-slate-500">Optional: show the last completed scene's code as a cue and recall only the new scene each round. Leave off to recall the whole chain.</p>
+                    <p id="questError" class="text-sm text-rose-600" role="alert"></p>
+                    <button id="questStart" type="button" class="${buttonClass}">Start quest</button>
+                </div>`;
+                document.getElementById('questSource').value = digitQuestSource || document.getElementById('digitInput').value;
+                attachDigitHighlighting(document.getElementById('questSource'));
+                card.querySelectorAll('[data-quest-constant]').forEach(button => {
+                    button.onclick = () => {
+                        const input = document.getElementById('questSource');
+                        input.value = constantDigits(button.dataset.questConstant);
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        document.getElementById('questError').textContent = '';
+                        input.focus();
+                    };
+                });
+                document.getElementById('questStart').onclick = () => {
+                    const digits = document.getElementById('questSource').value.replace(/\D/g, '');
+                    if (!digits.length || digits.length > 1000) {
+                        document.getElementById('questError').textContent = 'Enter between 1 and 1000 digits.';
+                        return;
+                    }
+                    digitQuestSource = digits;
+                    Object.assign(s, { digits, target: Math.min(6, digits.length), mastered: 0, phase: 'study', points: 0, streak: 0, hinted: false,
+                        continuation: document.getElementById('questContinuation').checked });
+                    renderDigitQuest();
+                };
+                return;
+            }
+            if (s.phase === 'failed') {
+                const score = Math.round(100 * s.leadingCorrect / s.answerLength);
+                card.innerHTML = `<div class="max-w-2xl mx-auto space-y-4">
+                    <h3 class="text-xl font-bold text-slate-800">Round over</h3>
+                    <p class="text-lg font-semibold text-indigo-600">${s.points} points · Recall score: ${score}%</p>
+                    <p class="text-sm text-slate-600">${s.leadingCorrect} correct digits from the start of this answer out of ${s.requested || s.target} requested. You completed ${s.mastered} digits before this round.</p>
+                    <p class="text-sm text-slate-500">Continue to study and retry this round with your points intact, or start the same sequence again from the first scene with a fresh score.</p>
+                    <div class="flex flex-wrap gap-3">
+                        <button id="questResume" type="button" class="${buttonClass}">Continue this round</button>
+                        <button id="questStartOver" type="button" class="${buttonClass}">Start over</button>
+                    </div>
+                </div>`;
+                document.getElementById('questResume').onclick = () => {
+                    s.phase = 'study';
+                    renderDigitQuest();
+                };
+                document.getElementById('questStartOver').onclick = () => {
+                    Object.assign(s, { phase: 'study', target: Math.min(6, s.digits.length), mastered: 0,
+                        points: 0, streak: 0, hinted: false, answered: 0, correct: 0 });
+                    renderDigitQuest();
+                };
+                document.getElementById('questResume').focus();
+                updateQuizStats();
+                return;
+            }
+            const complete = s.phase === 'complete';
+            const roundStart = s.continuation && !complete ? s.mastered : 0;
+            const prefix = s.digits.slice(roundStart, s.target);
+            card.innerHTML = `<div class="max-w-2xl mx-auto space-y-4">
+                <h3 class="text-xl font-bold text-slate-800">${complete ? 'Quest complete!' : `Digit Quest · Round ${Math.ceil(s.target / 6)}`}</h3>
+                <p class="text-sm text-slate-500">${s.mastered}/${s.digits.length} digits recalled · ${s.points} points · streak ${s.streak}</p>
+                <progress class="w-full h-3" max="${s.digits.length}" value="${s.mastered}" aria-label="Digits recalled"></progress>
+                <p class="text-xs text-slate-500">${s.continuation ? 'Scene-by-scene recall · previous scene cue enabled' : 'Full-chain recall'}</p>
+                ${!complete && s.phase === 'study' ? `<label class="block text-sm text-slate-700"><input id="questContinuation" type="checkbox" class="mr-2" ${s.continuation ? 'checked' : ''}>Continue from last scene</label>` : ''}
+                ${roundStart ? `<p class="text-sm text-slate-500">Last completed scene (${Math.ceil(roundStart / 6)}): <span class="font-mono">${highlightDigitPairs(s.digits.slice(Math.max(0, roundStart - 6), roundStart))}</span> → continue with digits ${roundStart + 1}–${s.target}.</p>` : ''}
+                <p class="text-sm text-slate-600">${complete ? (s.continuation ? 'You recalled every scene in order! Try full-chain recall next to strengthen the sequence.' : 'You recalled the entire sequence! Play again to strengthen the chain.') : s.phase === 'study' ? `Study digits ${roundStart + 1}–${s.target} and imagine these scenes in order.` : `Recall ${prefix.length} digits${roundStart ? ` starting at position ${roundStart + 1}` : ' from the beginning'}. Spaces are added automatically.`}</p>
+                <div id="questScenes" class="space-y-2 ${s.phase === 'recall' ? 'hidden' : ''}">${s.phase === 'recall' ? '' : digitQuestScenes(prefix, roundStart)}</div>
+                ${s.phase === 'recall' ? `<form id="questForm" class="space-y-3"><label for="questAnswer" class="block text-sm font-semibold text-slate-700">Your recalled digits</label><textarea id="questAnswer" rows="3" inputmode="numeric" autocomplete="off" spellcheck="false" class="w-full rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-sm text-slate-800"></textarea><div class="flex flex-wrap gap-3"><button class="${buttonClass}" type="submit">Check · Enter</button><button id="questHint" class="text-sm text-indigo-600 underline" type="button">Show PAO hint</button></div></form>` : ''}
+                <p id="questFeedback" class="text-sm text-slate-600" role="status"></p>
+                ${s.phase !== 'recall' ? `<button id="questContinue" type="button" class="${buttonClass}">${complete ? 'New quest' : 'Hide scenes & recall'}</button>` : ''}
+            </div>`;
+            updateQuizStats();
+            if (s.phase !== 'recall') {
+                if (!complete) document.getElementById('questContinuation').onchange = event => {
+                    s.continuation = event.target.checked;
+                    renderDigitQuest();
+                };
+                document.getElementById('questContinue').onclick = () => {
+                    if (complete) { startQuizSession(); return; }
+                    s.phase = 'recall';
+                    renderDigitQuest();
+                };
+                document.getElementById('questContinue').focus();
+                return;
+            }
+            const input = document.getElementById('questAnswer');
+            attachDigitHighlighting(input);
+            input.focus();
+            document.getElementById('questHint').onclick = () => {
+                s.hinted = true;
+                s.streak = 0;
+                const scenes = document.getElementById('questScenes');
+                scenes.innerHTML = digitQuestScenes(prefix, roundStart);
+                scenes.classList.remove('hidden');
+                document.getElementById('questFeedback').textContent = 'Study the hint, then try this round again without it to advance.';
+            };
+            const check = () => {
+                const answer = input.value.replace(/\D/g, '');
+                const correct = answer === prefix;
+                s.answered++;
+                if (correct) s.correct++;
+                const key = 'digitQuest';
+                const meta = quizMetaByMode[key] || (quizMetaByMode[key] = { answered: 0, correct: 0 });
+                meta.answered++;
+                if (correct) meta.correct++;
+                try { localStorage.setItem(QUIZ_META_BY_MODE_KEY, JSON.stringify(quizMetaByMode)); } catch (e) {}
+                if (correct && !s.hinted) {
+                    s.mastered = s.target;
+                    s.streak++;
+                    s.points += 10 * s.streak;
+                    s.phase = s.target === s.digits.length ? 'complete' : 'study';
+                    s.target = Math.min(s.target + 6, s.digits.length);
+                    renderDigitQuest();
+                    document.getElementById('questFeedback').textContent = s.phase === 'complete'
+                        ? (s.continuation ? 'Quest finished — every scene recalled in order!' : 'Perfect finish — the whole sequence recalled without a hint!')
+                        : 'Correct! Your memory chain is growing.';
+                } else {
+                    s.streak = 0;
+                    s.phase = correct ? 'study' : 'failed';
+                    const hinted = s.hinted;
+                    s.hinted = false;
+                    let mismatch = 0;
+                    while (mismatch < prefix.length && prefix[mismatch] === answer[mismatch]) mismatch++;
+                    s.leadingCorrect = mismatch;
+                    s.answerLength = Math.max(prefix.length, answer.length);
+                    s.requested = prefix.length;
+                    renderDigitQuest();
+                    if (correct && hinted) document.getElementById('questFeedback').textContent =
+                        'Correct with a hint. Now recall this same round without help to advance.';
+                }
+                updateQuizStats();
+            };
+            document.getElementById('questForm').onsubmit = e => { e.preventDefault(); check(); };
+            input.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); check(); } };
+        }
+
         function startQuizSession() {
+            if (document.getElementById('quizTask').value === 'digitQuest') {
+                quizSession = { task: 'digitQuest', phase: 'setup', answered: 0, correct: 0, queue: [], pos: 0 };
+                renderDigitQuest();
+                updateQuizStats();
+                return;
+            }
             const size = parseInt(document.getElementById('quizSessionSize').value, 10) || 20;
             const style = currentQuizStyle();
             const scope = currentQuizScope();
@@ -1641,6 +1891,7 @@
         }
 
         function renderQuiz() {
+            if (quizSession && quizSession.task === 'digitQuest') { renderDigitQuest(); return; }
             const card = document.getElementById('quizCard');
 
             if (!quizSession || quizSession.pos >= quizSession.queue.length) {
@@ -2098,7 +2349,9 @@
             document.getElementById('quizStatAccuracy').textContent = m.answered
                 ? `${Math.round((m.correct / m.answered) * 100)}% (${m.correct}/${m.answered})`
                 : '–';
-            document.getElementById('quizStatProgress').textContent = quizSession
+            document.getElementById('quizStatProgress').textContent = quizSession && quizSession.task === 'digitQuest'
+                ? `${quizSession.mastered || 0}/${(quizSession.digits || '').length} digits recalled`
+                : quizSession
                 ? `${quizSession.answered} answered · ${Math.max(0, quizSession.queue.length - quizSession.pos)} left`
                 : '–';
         }
@@ -2267,17 +2520,43 @@
         document.getElementById('quizRestartBtn').addEventListener('click', startQuizSession);
         document.getElementById('quizResetProgressBtn').addEventListener('click', resetQuizProgress);
 
-        // Constant digits
-        const CONSTS = {
-            pi: "31415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679",
-            e: "2718281828459045235360287471352662497757247093699959574966967627724076630353547594571382178525166427",
-            sqrt2: "1414213562373095048801688724209698078569671875376948073176679737990732478462107038850387534327641573",
-            phi: "1618033988749894848204586834365638117720309179805762862135448622705260462818902449707207204189391137"
-        };
+        // Compute genuine constant digits offline with 20 guard digits. Return
+        // 1,000 digits including the integer part, with the decimal point omitted.
+        const constantDigitCache = {};
+        function constantDigits(key) {
+            if (constantDigitCache[key]) return constantDigitCache[key];
+            const scale = 10n ** 1020n;
+            const sqrt = n => {
+                let x = n, next = (x + 1n) / 2n;
+                while (next < x) { x = next; next = (x + n / x) / 2n; }
+                return x;
+            };
+            const atanInverse = divisor => {
+                let power = scale / divisor, sum = 0n, index = 0n;
+                while (power) {
+                    const term = power / (2n * index + 1n);
+                    if (!term) break;
+                    sum += index % 2n ? -term : term;
+                    power /= divisor * divisor;
+                    index++;
+                }
+                return sum;
+            };
+            let value;
+            if (key === 'pi') value = 16n * atanInverse(5n) - 4n * atanInverse(239n);
+            else if (key === 'e') {
+                value = scale;
+                let term = scale, index = 1n;
+                while (term) { term /= index++; value += term; }
+            } else if (key === 'sqrt2') value = sqrt(2n * scale * scale);
+            else if (key === 'phi') value = (scale + sqrt(5n * scale * scale)) / 2n;
+            else return '';
+            return constantDigitCache[key] = value.toString().slice(0, 1000);
+        }
         document.querySelectorAll('.const-fill-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const key = btn.getAttribute('data-const');
-                const digits = (CONSTS[key] || '').replace(/\D/g, '').repeat(4).substring(0, 1000);
+                const digits = constantDigits(key);
                 const input = document.getElementById('digitInput');
                 if (input) {
                     input.value = digits;
@@ -2296,6 +2575,11 @@
             // Answer type (multiple choice / typed) applies to every mode
             document.getElementById('quizAnswerModeWrap').classList.remove('hidden');
             document.getElementById('quizPoolWrap').classList.toggle('hidden', scope !== 'selected');
+            const quest = task === 'digitQuest';
+            ['quizAnswerMode', 'quizScope', 'quizSessionSize'].forEach(id => {
+                document.getElementById(id).closest('label').classList.toggle('hidden', quest);
+            });
+            if (quest) document.getElementById('quizPoolWrap').classList.add('hidden');
             const grid = document.getElementById('quizModeGrid');
             if (grid) grid.classList.remove('hidden');
             document.querySelectorAll('.quiz-mode-btn').forEach(b => {
@@ -2376,6 +2660,7 @@
             );
 
             if (e.key === 'Escape') { setPracticeMode(false); return; }
+            if (quizSession && quizSession.task === 'digitQuest') return;
 
             if (quizSession && quizSession.task === 'digitsToPao' && e.key === 'Backspace' && !isTyping) {
                 const partsOrder = ['person', 'action', 'object'];
