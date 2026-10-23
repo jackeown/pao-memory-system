@@ -295,7 +295,7 @@
                 id: 'cat-family',
                 emoji: '🏠🧹',
                 title: 'Set 1: Family Members (00-09)',
-                subtitle: 'Cleaning Tasks with Household Items • Closest Relational Proximity',
+                subtitle: 'Cleaning Tasks with Household Items',
                 range: [0, 9],
                 items: [
                     { num: '00', person: 'Meli', action: 'Vacuuming', object: 'Vacuum Cleaner' },
@@ -466,7 +466,7 @@
                 id: 'cat-fictional',
                 emoji: '🧙💻',
                 title: 'Set 10: Fictional Characters (90-99)',
-                subtitle: 'Using Technology with Tech Gadgets • Furthest Relational Proximity',
+                subtitle: 'Using Technology with Tech Gadgets',
                 range: [90, 99],
                 items: [
                     { num: '90', person: 'Sherlock Holmes', action: 'Tapping', object: 'Smartphone' },
@@ -597,6 +597,28 @@
         // doesn't collapse the section you're working in. Keyed by category id.
         const accordionState = {};
 
+        function categoryNumberBadge(category) {
+            const nums = category.items.map(item => Number(item.num)).sort((a, b) => a - b);
+            const ranges = [];
+            for (let i = 0; i < nums.length; i++) {
+                const start = nums[i];
+                let end = start;
+                while (nums[i + 1] === end + 1) end = nums[++i];
+                const pad = n => String(n).padStart(2, '0');
+                ranges.push(start === end ? pad(start) : `${pad(start)}–${pad(end)}`);
+            }
+            return ranges.join(', ') || 'Empty';
+        }
+
+        function mergeNextCategory(index) {
+            const category = paoData[index], next = paoData[index + 1];
+            if (!category || !next) return false;
+            category.items.push(...next.items);
+            paoData.splice(index + 1, 1);
+            accordionState[category.id] = true;
+            return true;
+        }
+
         // Render Application
         function renderPAOApp(filterText = '') {
             const container = document.getElementById('categoriesContainer');
@@ -606,9 +628,13 @@
             const searchLower = filterText.toLowerCase();
 
             paoData.forEach((category, catIndex) => {
+                const title = category.title.replace(/^Set\s+\d+:\s*/i, '').replace(/\s*\(\d{2}\s*[-–]\s*\d{2}\)\s*$/, '');
+                const subtitle = category.subtitle.replace(/\s*•\s*[^•]*relational proximity\s*$/i, '');
+                const emoji = category.emoji || CATEGORY_EMOJI[category.id] || '🏷️';
+                const categoryMatches = filterText && `${title} ${subtitle}`.toLowerCase().includes(searchLower);
                 // Filter items based on search query
                 const filteredItems = category.items.filter(item => {
-                    if (!filterText) return true;
+                    if (!filterText || categoryMatches) return true;
                     return item.num.includes(searchLower) ||
                            item.person.toLowerCase().includes(searchLower) ||
                            item.action.toLowerCase().includes(searchLower) ||
@@ -627,19 +653,73 @@
                 // Accordion Header
                 const header = document.createElement('div');
                 header.className = 'bg-slate-100 hover:bg-slate-200/70 px-5 py-4 cursor-pointer flex justify-between items-center select-none transition';
+                header.dataset.dropCategory = catIndex;
                 header.innerHTML = `
                     <div>
                         <div class="flex items-center gap-3">
-                            <span class="bg-indigo-100 text-indigo-700 text-xs px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap">${category.range[0].toString().padStart(2, '0')}–${category.range[1].toString().padStart(2, '0')}</span>
-                            <h2 class="text-base font-semibold text-slate-800">${category.emoji || CATEGORY_EMOJI[category.id] || '🏷️'} ${escapeHTML(category.title.replace(/^Set\s+\d+:\s*/i, '').replace(/\s*\(\d{2}\s*[-–]\s*\d{2}\)\s*$/, ''))}</h2>
+                            <span class="bg-indigo-100 text-indigo-700 text-xs px-2.5 py-0.5 rounded-full font-medium">${categoryNumberBadge(category)}</span>
+                            <h2 class="text-base font-semibold text-slate-800">${escapeHTML(emoji)} ${escapeHTML(title)}</h2>
                         </div>
-                        <p class="text-xs text-slate-500 mt-0.5">${category.subtitle}</p>
+                        <p class="text-xs text-slate-500 mt-0.5">${escapeHTML(subtitle)}</p>
                     </div>
                     <div class="flex items-center gap-3">
+                        <button type="button" class="edit-category text-xs text-indigo-600 hover:underline whitespace-nowrap" aria-label="Edit category ${escapeHTML(title)}">Edit category</button>
                         <span class="text-xs text-slate-400 hidden sm:inline">${filteredItems.length} items</span>
                         <svg class="w-5 h-5 text-slate-500 transform transition-transform duration-200 chevron-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
                     </div>
                 `;
+
+                const editor = document.createElement('form');
+                editor.className = 'hidden border-t border-slate-200 bg-slate-50 p-4 space-y-3';
+                const fieldClass = 'block w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 text-sm';
+                editor.innerHTML = `
+                    <p class="text-xs text-slate-500">Personalize this category. Drag row handles onto another category's header or rows to move items while keeping their numbers. Changes are saved on this browser.</p>
+                    <label class="block text-sm text-slate-700">Emoji / icon<input name="emoji" type="text" value="${escapeHTML(emoji)}" class="${fieldClass}" maxlength="32"></label>
+                    <label class="block text-sm text-slate-700">Category title<input name="title" type="text" value="${escapeHTML(title)}" class="${fieldClass}" required maxlength="150"></label>
+                    <label class="block text-sm text-slate-700">Subtitle<input name="subtitle" type="text" value="${escapeHTML(subtitle)}" class="${fieldClass}" maxlength="300"></label>
+                    <div class="flex gap-2"><button type="submit" class="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold">Save category</button><button type="button" class="cancel-category px-3 py-2 rounded-lg bg-slate-200 text-slate-700 text-sm">Cancel</button></div>`;
+                if (catIndex < paoData.length - 1) {
+                    const merge = document.createElement('button');
+                    merge.type = 'button';
+                    merge.className = 'text-sm text-indigo-600 hover:underline';
+                    merge.textContent = 'Merge with next category: ' + paoData[catIndex + 1].title.replace(/^Set\s+\d+:\s*/i, '').replace(/\s*\(\d{2}\s*[-–]\s*\d{2}\)\s*$/, '');
+                    merge.onclick = () => {
+                        if (!mergeNextCategory(catIndex)) return;
+                        saveToLocalStorage();
+                        renderPAOApp(document.getElementById('globalSearch').value);
+                        showToast('Categories merged. Title and subtitle kept from the first category.');
+                    };
+                    editor.appendChild(merge);
+                }
+                const editButton = header.querySelector('.edit-category');
+                editButton.setAttribute('aria-expanded', 'false');
+                editButton.onclick = event => {
+                    event.stopPropagation();
+                    editor.classList.toggle('hidden');
+                    editButton.setAttribute('aria-expanded', String(!editor.classList.contains('hidden')));
+                    if (!editor.classList.contains('hidden')) editor.elements.title.focus();
+                };
+                const closeEditor = () => {
+                    editor.reset();
+                    editor.classList.add('hidden');
+                    editButton.setAttribute('aria-expanded', 'false');
+                    editButton.focus();
+                };
+                editor.querySelector('.cancel-category').onclick = closeEditor;
+                editor.addEventListener('keydown', event => {
+                    if (event.key === 'Escape') { event.preventDefault(); closeEditor(); }
+                });
+                editor.onsubmit = event => {
+                    event.preventDefault();
+                    const newTitle = editor.elements.title.value.trim();
+                    if (!newTitle) { editor.elements.title.focus(); return; }
+                    category.title = newTitle;
+                    category.subtitle = editor.elements.subtitle.value.trim();
+                    category.emoji = editor.elements.emoji.value.trim() || '🏷️';
+                    saveToLocalStorage();
+                    renderPAOApp(document.getElementById('globalSearch').value);
+                    showToast('Category saved.');
+                };
 
                 // Accordion Content Body
                 const body = document.createElement('div');
@@ -710,6 +790,7 @@
                 });
 
                 card.appendChild(header);
+                card.appendChild(editor);
                 card.appendChild(body);
                 container.appendChild(card);
             });
@@ -721,6 +802,7 @@
 
             // Allow drag-and-drop (or keyboard) reordering within each category
             attachReorderListeners();
+            attachCategoryDropListeners();
 
             // Flag any repeated values in the freshly rendered rows
             updateDuplicateUI();
@@ -738,9 +820,11 @@
         }
 
         function renumberCategory(catIndex) {
-            const base = categoryBaseNum(paoData[catIndex]);
+            // Reordering reuses only this category's existing number slots;
+            // moved or merged categories need not be contiguous.
+            const slots = paoData[catIndex].items.map(item => item.num).sort();
             paoData[catIndex].items.forEach((item, i) => {
-                item.num = String(base + i).padStart(2, '0');
+                item.num = slots[i];
             });
         }
 
@@ -768,6 +852,53 @@
             paoData[catIndex].items.splice(target, 0, moved);
             renumberCategory(catIndex);
             return true;
+        }
+
+        let categoryDragSource = null;
+
+        function moveItemBetweenCategories(from, to, num, targetNum = null, before = false) {
+            if (from === to || !paoData[from] || !paoData[to]) return false;
+            const source = paoData[from].items, target = paoData[to].items;
+            const index = source.findIndex(item => item.num === num);
+            if (index < 0) return false;
+            const targetIndex = target.findIndex(item => item.num === targetNum);
+            const [item] = source.splice(index, 1);
+            target.splice(targetIndex < 0 ? target.length : targetIndex + (before ? 0 : 1), 0, item);
+            accordionState[paoData[to].id] = true;
+            return true;
+        }
+
+        function attachCategoryDropListeners() {
+            const clear = () => document.querySelectorAll('[data-drop-category], .pao-row').forEach(element =>
+                element.classList.remove('ring-2', 'ring-indigo-400', 'drag-over-top', 'drag-over-bottom'));
+            document.querySelectorAll('[data-drop-category], .reorder-body').forEach(zone => {
+                const targetCategory = Number(zone.dataset.dropCategory ?? zone.dataset.cat);
+                zone.addEventListener('dragover', event => {
+                    if (!categoryDragSource || categoryDragSource.category === targetCategory) return;
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    clear();
+                    zone.classList.add('ring-2', 'ring-indigo-400');
+                    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+                }, true);
+                zone.addEventListener('dragleave', () => zone.classList.remove('ring-2', 'ring-indigo-400'));
+                zone.addEventListener('drop', event => {
+                    if (!categoryDragSource || categoryDragSource.category === targetCategory) return;
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    const row = event.target.closest('.pao-row');
+                    const before = row && event.clientY < row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2;
+                    const source = categoryDragSource;
+                    categoryDragSource = null;
+                    clear();
+                    if (moveItemBetweenCategories(source.category, targetCategory, source.num, row?.dataset.num, before)) {
+                        saveToLocalStorage();
+                        renderPAOApp();
+                        showToast('Moved ' + source.num + ' to category. Number kept unchanged.');
+                        focusReorderHandle(targetCategory, paoData[targetCategory].items.findIndex(item => item.num === source.num));
+                    }
+                }, true);
+            });
         }
 
         function attachReorderListeners() {
@@ -808,6 +939,7 @@
                     const row = e.target.closest('.pao-row');
                     if (!row) return;
                     dragRow = row;
+                    categoryDragSource = { category: catIndex, num: row.dataset.num };
                     row.classList.add('dragging');
                     if (e.dataTransfer) {
                         e.dataTransfer.effectAllowed = 'move';
@@ -816,6 +948,8 @@
                 });
 
                 tbody.addEventListener('dragend', () => {
+                    categoryDragSource = null;
+                    document.querySelectorAll('[data-drop-category], .reorder-body').forEach(zone => zone.classList.remove('ring-2', 'ring-indigo-400'));
                     if (dragRow) dragRow.draggable = false;
                     clearMarks();
                     dragRow = null;
@@ -1292,25 +1426,21 @@
             return 'mc';
         }
 
-        function getCategoryRangeForNum(num) {
-            const n = parseInt(num, 10);
-            for (let i = 0; i < paoData.length; i++) {
-                const r = paoData[i].range;
-                if (n >= r[0] && n <= r[1]) return r;
-            }
-            return [Math.floor(n / 10) * 10, Math.floor(n / 10) * 10 + 9];
+        function categoryNumbersForNum(num) {
+            const category = paoData.find(group => group.items.some(item => item.num === num));
+            return new Set(category ? category.items.map(item => item.num) : []);
         }
 
         function quizOptions(field, correct, num) {
             const seen = new Set();
             const pool = [];
-            const r = getCategoryRangeForNum(num || '00');
+            const groupNumbers = categoryNumbersForNum(num || '00');
             // Prefer same group
             paoData.forEach(category => category.items.forEach(item => {
                 const value = (item[field] || '').trim();
                 const norm = normalizeQuiz(value);
                 if (value && norm !== normalizeQuiz(correct) && !seen.has(norm)) {
-                    pool.push({ v: value, same: (parseInt(item.num, 10) >= r[0] && parseInt(item.num, 10) <= r[1]) });
+                    pool.push({ v: value, same: groupNumbers.has(item.num) });
                     seen.add(norm);
                 }
             }));
@@ -2038,12 +2168,11 @@
                     // Get options for the number
                     const correctNum = entry.num;
                     const opts = [];
-                    const r = getCategoryRangeForNum(correctNum);
+                    const groupNumbers = categoryNumbersForNum(correctNum);
                     const seen = new Set([correctNum]);
                     // add 2 from same group
                     paoData.forEach(c => c.items.forEach(it => {
-                        const nn = parseInt(it.num,10);
-                        if (nn>=r[0] && nn<=r[1] && !seen.has(it.num)) { opts.push(it.num); seen.add(it.num); }
+                        if (groupNumbers.has(it.num) && !seen.has(it.num)) { opts.push(it.num); seen.add(it.num); }
                     }));
                     shuffle(opts);
                     const choices = opts.slice(0,2);
